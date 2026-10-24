@@ -19,7 +19,7 @@ interface Props {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="space-y-3">
-      <h3 className="text-sm font-semibold tracking-wide text-neutral-700 uppercase">{title}</h3>
+      <h3 className="text-sm font-semibold tracking-wide text-neutral-700 uppercase dark:text-neutral-300">{title}</h3>
       {children}
       <Separator />
     </div>
@@ -29,9 +29,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs text-neutral-600">{label}</Label>
+      <Label className="text-xs text-neutral-600 dark:text-neutral-400">{label}</Label>
       {children}
-      {hint ? <p className="text-[11px] text-neutral-400">{hint}</p> : null}
+      {hint ? <p className="text-[11px] text-neutral-400 dark:text-neutral-500">{hint}</p> : null}
     </div>
   );
 }
@@ -159,8 +159,8 @@ export function SettingsPanel({ settings, onChange }: Props) {
                 ["pageNumberAll", "Numerar todas as páginas (se desligado, numera só a parte textual)"],
               ] as const
             ).map(([key, label]) => (
-              <div key={key} className="flex items-center justify-between gap-4 rounded-md border border-neutral-200 px-3 py-2">
-                <Label htmlFor={`tg-${key}`} className="text-xs font-normal text-neutral-700">
+              <div key={key} className="flex items-center justify-between gap-4 rounded-md border border-neutral-200 px-3 py-2 dark:border-neutral-800">
+                <Label htmlFor={`tg-${key}`} className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                   {label}
                 </Label>
                 <Switch id={`tg-${key}`} checked={tg[key]} onCheckedChange={(v) => toggle(key, v)} />

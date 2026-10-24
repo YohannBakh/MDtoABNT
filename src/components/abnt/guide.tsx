@@ -110,7 +110,7 @@ export function SyntaxGuide() {
   return (
     <ScrollArea className="h-[calc(100vh-220px)] pr-3">
       <div className="space-y-4 pb-8">
-        <p className="text-sm text-neutral-600">
+        <p className="text-sm text-neutral-600 dark:text-neutral-400">
           Escreva suas anotações em Markdown comum — o conversor aplica as normas automaticamente. Recursos especiais:
         </p>
         {snippets.map((sn) => (
@@ -119,8 +119,8 @@ export function SyntaxGuide() {
               <CardTitle className="text-sm">{sn.title}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <p className="text-xs text-neutral-600">{sn.body}</p>
-              <pre className="overflow-x-auto rounded-md bg-neutral-100 p-3 font-mono text-[11px] leading-relaxed text-neutral-800">
+              <p className="text-xs text-neutral-600 dark:text-neutral-400">{sn.body}</p>
+              <pre className="overflow-x-auto rounded-md bg-neutral-100 p-3 font-mono text-[11px] leading-relaxed text-neutral-800 dark:bg-neutral-800 dark:text-neutral-200">
                 {sn.code}
               </pre>
             </CardContent>
@@ -132,8 +132,8 @@ export function SyntaxGuide() {
           </CardHeader>
           <CardContent className="space-y-2">
             {normas.map(([nbr, desc]) => (
-              <div key={nbr} className="text-xs text-neutral-600">
-                <span className="font-semibold text-neutral-800">{nbr}</span> — {desc}
+              <div key={nbr} className="text-xs text-neutral-600 dark:text-neutral-400">
+                <span className="font-semibold text-neutral-800 dark:text-neutral-200">{nbr}</span> — {desc}
               </div>
             ))}
           </CardContent>
