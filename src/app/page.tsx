@@ -2,6 +2,7 @@
 
 /* MD2ABNT — Conversor de anotações Markdown para os padrões ABNT */
 
+import Image from "next/image";
 import { useMemo, useState } from "react";
 import { parseMarkdown } from "@/lib/abnt/parse";
 import { DEFAULT_SETTINGS, type AbntSettings } from "@/lib/abnt/types";
@@ -17,6 +18,7 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Eraser, FileDown, FileText, Loader2, NotebookPen, ScrollText } from "lucide-react";
@@ -80,19 +82,19 @@ export default function Home() {
   }
 
   const editorCard = (
-    <div className="flex h-full min-h-0 flex-col rounded-xl border bg-white shadow-sm">
+    <div className="flex h-full min-h-0 flex-col rounded-xl border bg-white shadow-sm dark:bg-neutral-900">
       <div className="flex items-center justify-between gap-2 border-b px-4 py-2.5">
-        <div className="flex items-center gap-2 text-sm font-semibold text-neutral-700">
+        <div className="flex items-center gap-2 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
           <NotebookPen className="h-4 w-4" />
           Anotações em Markdown
         </div>
-        <div className="flex items-center gap-3 text-[11px] text-neutral-400">
+        <div className="flex items-center gap-3 text-[11px] text-neutral-400 dark:text-neutral-500">
           <span>{words} palavras</span>
           <span>{doc.figures.length} fig.</span>
           <span>{doc.tables.length} tab.</span>
           <span>{doc.references.length} ref.</span>
           <button
-            className="rounded p-1 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
+            className="rounded p-1 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
             onClick={() => setMarkdown("")}
             aria-label="Limpar editor"
             title="Limpar editor"
@@ -105,7 +107,7 @@ export default function Home() {
         value={markdown}
         onChange={(e) => setMarkdown(e.target.value)}
         placeholder="# Cole aqui suas anotações em Markdown..."
-        className="flex-1 resize-none rounded-none border-0 bg-[repeating-linear-gradient(transparent,transparent_35px,rgba(0,0,0,0.03)_35px,rgba(0,0,0,0.03)_36px)] p-4 font-mono text-[13px] leading-6 shadow-none focus-visible:ring-0"
+        className="flex-1 resize-none rounded-none border-0 bg-[repeating-linear-gradient(transparent,transparent_35px,rgba(0,0,0,0.03)_35px,rgba(0,0,0,0.03)_36px)] p-4 font-mono text-[13px] leading-6 shadow-none focus-visible:ring-0 dark:bg-[repeating-linear-gradient(transparent,transparent_35px,rgba(255,255,255,0.04)_35px,rgba(255,255,255,0.04)_36px)]"
         aria-label="Editor de Markdown"
         spellCheck={false}
       />
@@ -114,7 +116,7 @@ export default function Home() {
 
   const rightTabs = (
     <Tabs defaultValue="preview" className="flex h-full min-h-0 flex-col">
-      <TabsList className="grid w-full grid-cols-3 rounded-lg bg-white p-1 shadow-sm">
+      <TabsList className="grid w-full grid-cols-3 rounded-lg bg-white p-1 shadow-sm dark:bg-neutral-900">
         <TabsTrigger value="preview" className="text-xs">
           <ScrollText className="mr-1.5 h-3.5 w-3.5" />
           Prévia ABNT
@@ -126,34 +128,40 @@ export default function Home() {
           Guia
         </TabsTrigger>
       </TabsList>
-      <TabsContent value="preview" className="mt-3 min-h-0 flex-1 overflow-auto rounded-xl bg-neutral-200/70 p-4">
+      <TabsContent value="preview" className="mt-3 min-h-0 flex-1 overflow-auto rounded-xl bg-neutral-200/70 p-4 dark:bg-neutral-800/60">
         <AbntPreview doc={doc} />
       </TabsContent>
-      <TabsContent value="settings" className="mt-3 min-h-0 flex-1 rounded-xl bg-white p-4 shadow-sm">
+      <TabsContent value="settings" className="mt-3 min-h-0 flex-1 rounded-xl bg-white p-4 shadow-sm dark:bg-neutral-900">
         <SettingsPanel settings={settings} onChange={patchSettings} />
       </TabsContent>
-      <TabsContent value="guide" className="mt-3 min-h-0 flex-1 rounded-xl bg-white p-4 shadow-sm">
+      <TabsContent value="guide" className="mt-3 min-h-0 flex-1 rounded-xl bg-white p-4 shadow-sm dark:bg-neutral-900">
         <SyntaxGuide />
       </TabsContent>
     </Tabs>
   );
 
   return (
-    <div className="flex min-h-screen flex-col bg-neutral-100">
-      <header className="sticky top-0 z-20 border-b bg-white/95 backdrop-blur">
+    <div className="flex min-h-screen flex-col bg-neutral-100 dark:bg-neutral-950">
+      <header className="sticky top-0 z-20 border-b bg-white/95 backdrop-blur dark:bg-neutral-900/95">
         <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-700 font-bold text-white shadow-sm">
-              A
-            </div>
+            <Image
+              src="/logo.png"
+              alt="Logo MD2ABNT"
+              width={40}
+              height={40}
+              priority
+              className="h-10 w-10 rounded-xl object-cover shadow-sm ring-1 ring-border"
+            />
             <div>
-              <h1 className="text-lg font-bold leading-tight text-neutral-900">MD2ABNT</h1>
-              <p className="text-xs text-neutral-500">
+              <h1 className="text-lg font-bold leading-tight text-neutral-900 dark:text-neutral-50">MD2ABNT</h1>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400">
                 Anotações em Markdown → artigo nos padrões ABNT (NBR 14724 · 6022 · 6024 · 10520 · 6023 · 6028)
               </p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <ThemeToggle />
             <Button variant="ghost" size="sm" onClick={() => setMarkdown(SAMPLE_MARKDOWN)}>
               <FileText className="mr-1.5 h-4 w-4" />
               Carregar exemplo
@@ -172,7 +180,7 @@ export default function Home() {
               variant="outline"
               onClick={() => generate("pdf")}
               disabled={loading !== null}
-              className="border-teal-700 text-teal-800 hover:bg-teal-50"
+              className="border-teal-700 text-teal-800 hover:bg-teal-50 dark:border-teal-500 dark:text-teal-300 dark:hover:bg-teal-950/40"
             >
               {loading === "pdf" ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <FileDown className="mr-1.5 h-4 w-4" />}
               Gerar PDF
@@ -184,7 +192,7 @@ export default function Home() {
       <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-4 sm:px-6">
         {isMobile ? (
           <Tabs defaultValue="editor" className="flex h-[calc(100vh-140px)] min-h-[560px] flex-col">
-            <TabsList className="grid w-full grid-cols-4 rounded-lg bg-white p-1 shadow-sm">
+            <TabsList className="grid w-full grid-cols-4 rounded-lg bg-white p-1 shadow-sm dark:bg-neutral-900">
               <TabsTrigger value="editor" className="text-xs">Editor</TabsTrigger>
               <TabsTrigger value="preview" className="text-xs">Prévia</TabsTrigger>
               <TabsTrigger value="settings" className="text-xs">Ajustes</TabsTrigger>
@@ -193,13 +201,13 @@ export default function Home() {
             <TabsContent value="editor" className="mt-3 min-h-0 flex-1">
               {editorCard}
             </TabsContent>
-            <TabsContent value="preview" className="mt-3 min-h-0 flex-1 overflow-auto rounded-xl bg-neutral-200/70 p-3">
+            <TabsContent value="preview" className="mt-3 min-h-0 flex-1 overflow-auto rounded-xl bg-neutral-200/70 p-3 dark:bg-neutral-800/60">
               <AbntPreview doc={doc} />
             </TabsContent>
-            <TabsContent value="settings" className="mt-3 min-h-0 flex-1 rounded-xl bg-white p-4 shadow-sm">
+            <TabsContent value="settings" className="mt-3 min-h-0 flex-1 rounded-xl bg-white p-4 shadow-sm dark:bg-neutral-900">
               <SettingsPanel settings={settings} onChange={patchSettings} />
             </TabsContent>
-            <TabsContent value="guide" className="mt-3 min-h-0 flex-1 rounded-xl bg-white p-4 shadow-sm">
+            <TabsContent value="guide" className="mt-3 min-h-0 flex-1 rounded-xl bg-white p-4 shadow-sm dark:bg-neutral-900">
               <SyntaxGuide />
             </TabsContent>
           </Tabs>
@@ -216,10 +224,22 @@ export default function Home() {
         )}
       </main>
 
-      <footer className="mt-auto border-t bg-white">
-        <div className="mx-auto max-w-[1600px] px-4 py-3 text-center text-[11px] text-neutral-400 sm:px-6">
-          MD2ABNT — conversor de anotações Markdown para ABNT · No Word, pressione Ctrl+T e escolha “Atualizar todo o índice”
-          para preencher sumário e listas · Verifique sempre as normas específicas da sua instituição.
+      <footer className="mt-auto border-t bg-white dark:bg-neutral-900">
+        <div className="mx-auto flex max-w-[1600px] flex-col items-center justify-between gap-1.5 px-4 py-3 text-[11px] text-neutral-400 sm:flex-row sm:px-6 dark:text-neutral-500">
+          <p className="text-center sm:text-left">
+            MD2ABNT — conversor de anotações Markdown para ABNT · No Word, pressione Ctrl+T e escolha “Atualizar todo o índice”
+            para preencher sumário e listas · Verifique sempre as normas específicas da sua instituição.
+          </p>
+          <a
+            href="https://github.com/YohannBakh"
+            target="_blank"
+            rel="noreferrer"
+            className="flex shrink-0 items-center gap-1.5 italic transition-colors hover:text-teal-700 dark:hover:text-teal-400"
+            title="made by Henry"
+          >
+            <Image src="/logo.png" alt="" width={20} height={20} className="h-5 w-5 rounded-full object-cover ring-1 ring-border" />
+            made by Henry
+          </a>
         </div>
       </footer>
     </div>

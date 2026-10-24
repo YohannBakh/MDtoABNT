@@ -19,9 +19,6 @@ export const metadata: Metadata = {
     "Conversor de anotações em Markdown para documentos formatados nos padrões ABNT (NBR 14724, 6022, 6024, 10520, 6023 e 6028), com geração de DOCX e PDF.",
   keywords: ["ABNT", "Markdown", "NBR 14724", "artigo científico", "conversor", "DOCX", "PDF"],
   authors: [{ name: "MD2ABNT" }],
-  icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
-  },
 };
 
 export default function RootLayout({
@@ -31,6 +28,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
+      <head>
+        {/* Aplica o tema salvo antes da pintura para evitar flash claro/escuro */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{if(localStorage.getItem("md2abnt-theme")==="dark"){document.documentElement.classList.add("dark")}}catch(e){}`,
+          }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >

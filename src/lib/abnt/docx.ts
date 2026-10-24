@@ -57,16 +57,16 @@ function mainFont(doc: AbntDocument) {
 /* ------------------------- corridas ------------------------- */
 
 function tr(r: InlineRun, size: number, font: string, mono: string, boldOverride?: boolean): TextRun {
-  const opts: ConstructorParameters<typeof TextRun>[0] = {
+  const opts = {
     text: r.text,
     size: r.code ? 20 : size,
     font: r.code ? mono : font,
-  };
-  if (r.bold || boldOverride) opts.bold = true;
-  if (r.italic) opts.italics = true;
-  if (r.underline) opts.underline = {};
-  if (r.sup) opts.superScript = true;
-  if (r.sub) opts.subScript = true;
+    ...(r.bold || boldOverride ? { bold: true } : {}),
+    ...(r.italic ? { italics: true } : {}),
+    ...(r.underline ? { underline: {} } : {}),
+    ...(r.sup ? { superScript: true } : {}),
+    ...(r.sub ? { subScript: true } : {}),
+  } as ConstructorParameters<typeof TextRun>[0];
   return new TextRun(opts);
 }
 
@@ -250,7 +250,7 @@ function listToParas(b: Extract<Block, { type: "list" }>, doc: AbntDocument): Pa
 function equationPara(runs: InlineRun[], num: number | undefined, doc: AbntDocument): Paragraph {
   const f = mainFont(doc);
   const mono = MONO_FONTS.docx;
-  const children: (TextRun | Tab)[] = [...runsOf(runs, 24, f.docx, mono)];
+  const children: TextRun[] = [...runsOf(runs, 24, f.docx, mono)];
   if (num !== undefined) {
     children.push(new TextRun({ children: [new Tab(), `(${num})`], size: 24, font: f.docx }));
   }
@@ -571,7 +571,7 @@ export async function buildDocxBlob(doc: AbntDocument): Promise<Buffer> {
     allPre.push(...blk);
   }
   // listas de figuras/tabelas + sumário
-  const endPre: Paragraph[] = [];
+  const endPre: (Paragraph | TableOfContents)[] = [];
   if (t.listaFiguras && doc.figures.length) {
     endPre.push(...listTitleParas("Lista de Figuras", doc));
     endPre.push(
@@ -644,7 +644,7 @@ export async function buildDocxBlob(doc: AbntDocument): Promise<Buffer> {
         children: [...allPre, ...endPre],
       },
       {
-        properties: { ...pageProps, pageNumbers: { start: bodyStart, formatType: NumberFormat.DECIMAL } },
+        properties: { ...pageProps, page: { ...pageProps.page, pageNumbers: { start: bodyStart, formatType: NumberFormat.DECIMAL } } },
         headers: { default: pageNumHeader },
         children: bodyChildren,
       },
