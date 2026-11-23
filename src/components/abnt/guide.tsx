@@ -97,9 +97,9 @@ em que $D(t)$ é o desempenho na semana $t$.`,
   },
   {
     title: "Quebra de linha (pular linha)",
-    body: "Com o ajuste “Enter cria quebra de linha” ligado (padrão), pressionar Enter dentro de um parágrafo quebra a linha no documento — útil para linhas de cálculo. Duas linhas em branco criam um novo parágrafo com recuo.",
-    code: `i = 12 / 3200 = 3,75 mA
-VR1 = 1000 × 3,75 mA = 3,75 V
+    body: "Comando garantido: escreve \\\\ (duas barras invertidas) no fim da linha para quebrar a linha exatamente ali — funciona sempre, mesmo com o ajuste “Enter cria quebra de linha” desligado. Uma linha só com \\\\ cria uma linha em branco. Com o ajuste ligado (padrão), pressionar Enter dentro do parágrafo também quebra a linha.",
+    code: `i = 12 / 3200 = 3,75 mA \\\\
+VR1 = 1000 × 3,75 mA = 3,75 V \\\\
 VR2 = 12 − 3,75 = 8,25 V`,
   },
   {

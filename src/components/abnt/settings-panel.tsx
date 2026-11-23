@@ -256,12 +256,12 @@ export function SettingsPanel({ settings, onChange }: Props) {
               (
                 isReport
                   ? ([
-                      ["lineBreaks", "Enter cria quebra de linha (pular linha)"],
+                      ["lineBreaks", "Enter cria quebra de linha (ou use \\\\ no fim da linha)"],
                       ["numberSections", "Numerar seções (1., 1.1, 1.1.1 …)"],
                       ["numberEquations", "Numerar equações"],
                     ] as const)
                   : ([
-                      ["lineBreaks", "Enter cria quebra de linha (pular linha)"],
+                      ["lineBreaks", "Enter cria quebra de linha (ou use \\\\ no fim da linha)"],
                       ["capa", "Capa (NBR 14724)"],
                       ["folhaRosto", "Folha de rosto"],
                       ["aprovacao", "Folha de aprovação"],

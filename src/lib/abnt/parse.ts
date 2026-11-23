@@ -255,6 +255,9 @@ function inlineRuns(tokens: Token[] | undefined, base: Partial<InlineRun> = {}, 
       case "br":
         runs.push({ text: "\n" });
         break;
+      case "lineBreakCmd":
+        runs.push({ text: "\n" });
+        break;
       case "escape":
         runs.push({ ...base, text: normalizeSoftBreaks(convertCitations((t as Tokens.Escape).text)) });
         break;
@@ -467,6 +470,21 @@ const containerExtension = {
 /** token HTML "<!-- pagebreak -->" (ou "quebra de página") vira quebra de página */
 const PAGEBREAK_RE = /<!--\s*(pagebreak|quebra\s*de\s*p[áa]gina)\s*-->/i;
 
+/** extensão marked: comando de texto "\\" no fim da linha → quebra de linha manual (independe do ajuste de Enter) */
+const lineBreakCmdExtension = {
+  name: "lineBreakCmd",
+  level: "inline" as const,
+  start(src: string) {
+    const i = src.indexOf("\\\\");
+    return i === -1 ? undefined : i;
+  },
+  tokenizer(src: string): Token | undefined {
+    const m = /^\\\\[ \t]*(?:\r?\n|$)/.exec(src);
+    if (!m) return undefined;
+    return { type: "lineBreakCmd", raw: m[0] } as unknown as Token;
+  },
+};
+
 export function parseMarkdown(md: string, settings: AbntSettings): AbntDocument {
   const { front, body } = extractFrontMatter(md);
   const doc: AbntDocument = {
@@ -483,7 +501,7 @@ export function parseMarkdown(md: string, settings: AbntSettings): AbntDocument 
   const lexer = new Marked({
     breaks: settings.toggles.lineBreaks !== false,
     gfm: true,
-    extensions: [containerExtension as never],
+    extensions: [containerExtension as never, lineBreakCmdExtension as never],
   });
   const tokens = [...lexer.lexer(body)] as Token[];
   const blocks: Block[] = [];
