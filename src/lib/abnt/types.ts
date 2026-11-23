@@ -70,6 +70,8 @@ export interface FigureBlock {
   caption?: string;
   sourceNote?: string;
   num?: number;
+  /** alinhamento definido por container ::: (opcional) */
+  align?: Align;
   /** preenchido no estágio de geração */
   page?: number;
 }
@@ -98,6 +100,11 @@ export interface HrBlock {
   type: "hr";
 }
 
+/** Quebra de página manual (<!-- pagebreak --> no Markdown) */
+export interface PageBreakBlock {
+  type: "pagebreak";
+}
+
 export type Block =
   | HeadingBlock
   | ParagraphBlock
@@ -107,16 +114,21 @@ export type Block =
   | FigureBlock
   | TableBlock
   | EquationBlock
-  | HrBlock;
+  | HrBlock
+  | PageBreakBlock;
 
 /* ------------------------- Configurações ------------------------- */
 
 /** Estilo do documento: artigo ABNT ou relatório técnico de experimento */
 export type DocStyle = "abnt" | "relatorio";
 
-/** Campos da capa do relatório técnico (tabela institucional) */
+/** Campos da capa do relatório técnico (cabeçalho institucional + tabela de identificação) */
 export interface ReportCover {
-  /** ex.: "CURSO SUPERIOR EM ENGENHARIA DE CONTROLE E AUTOMAÇÃO" */
+  /** inclui o título e a tabela de identificação antes do texto (tudo na 1ª página, sem quebrar) */
+  showCover: boolean;
+  /** 1ª linha do cabeçalho, ex.: "INSTITUTO FEDERAL CATARINENSE | CÂMPUS LUZERNA" */
+  headerInstitution: string;
+  /** 2ª linha do cabeçalho, ex.: "CURSO SUPERIOR EM ENGENHARIA DE CONTROLE E AUTOMAÇÃO" */
   course: string;
   /** ex.: "RELATÓRIO TÉCNICO – ATIVIDADE EXPERIMENTAL" */
   activityLabel: string;
@@ -132,6 +144,8 @@ export interface ReportCover {
 }
 
 export interface AbntToggles {
+  /** Enter simples cria quebra de linha (além da quebra de parágrafo) */
+  lineBreaks: boolean;
   capa: boolean;
   folhaRosto: boolean;
   aprovacao: boolean;
@@ -206,6 +220,8 @@ export const DEFAULT_SETTINGS: AbntSettings = {
   fileName: "artigo-abnt",
   /** campos da capa do estilo Relatório Técnico */
   report: {
+    showCover: true,
+    headerInstitution: "INSTITUTO FEDERAL CATARINENSE | CÂMPUS LUZERNA",
     course: "CURSO SUPERIOR EM ENGENHARIA DE CONTROLE E AUTOMAÇÃO",
     activityLabel: "RELATÓRIO TÉCNICO – ATIVIDADE EXPERIMENTAL",
     activityNumber: "",
@@ -216,6 +232,7 @@ export const DEFAULT_SETTINGS: AbntSettings = {
     dataAtividade: "",
   },
   toggles: {
+    lineBreaks: true,
     capa: true,
     folhaRosto: true,
     aprovacao: true,
@@ -247,6 +264,9 @@ export const ABNT = {
 /** Medidas do estilo Relatório Técnico (medidas dos relatórios do curso) */
 export const REPORT = {
   margin: { top: 2.5, left: 3, bottom: 2.5, right: 3 },
+  /** cores do cabeçalho institucional (verde do modelo IFC) */
+  headerGreen: "28503F",
+  headerGray: "464646",
   /** espaçamento 1,15 (docx: 240 × 1,15) */
   lineDocx: 276,
   lineFactor: 1.15,

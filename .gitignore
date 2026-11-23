@@ -57,3 +57,10 @@ scripts/test-*.png
 
 # uploads do usuario (nao versionar)
 /upload/
+
+# tool artifacts
+tool-results/
+
+# arquivos do ambiente
+tool-results/
+.zscripts/dev.pid

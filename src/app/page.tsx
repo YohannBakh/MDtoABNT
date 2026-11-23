@@ -3,7 +3,7 @@
 /* MD2ABNT — Conversor de anotações Markdown para os padrões ABNT */
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { parseMarkdown } from "@/lib/abnt/parse";
 import { DEFAULT_SETTINGS, type AbntSettings } from "@/lib/abnt/types";
 import { SAMPLE_MARKDOWN, SAMPLE_REPORT_MARKDOWN } from "@/lib/abnt/sample";
@@ -21,14 +21,25 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Eraser, FileDown, FileText, FlaskConical, Loader2, NotebookPen, ScrollText } from "lucide-react";
+import { BookOpen, Eraser, FileDown, FileText, FlaskConical, Loader2, NotebookPen, ScrollText } from "lucide-react";
 
 type Format = "docx" | "pdf";
+
+/** chips de sintaxe: envolvem o texto selecionado com o recurso correspondente */
+const ALIGN_CHIPS: { label: string; tag: string; title: string }[] = [
+  { label: "Centralizar", tag: "center", title: "Envolve a seleção com ::: center … :::" },
+  { label: "Esquerda", tag: "left", title: "Envolve a seleção com ::: left … :::" },
+  { label: "Direita", tag: "right", title: "Envolve a seleção com ::: right … :::" },
+  { label: "Justificar", tag: "justify", title: "Envolve a seleção com ::: justify … :::" },
+];
 
 export default function Home() {
   const [markdown, setMarkdown] = useState<string>(SAMPLE_MARKDOWN);
   const [settings, setSettings] = useState<AbntSettings>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState<Format | null>(null);
+  const [rightTab, setRightTab] = useState("preview");
+  const [mobileTab, setMobileTab] = useState("editor");
+  const taRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
@@ -37,6 +48,38 @@ export default function Home() {
   const words = useMemo(() => markdown.trim().split(/\s+/).filter(Boolean).length, [markdown]);
 
   const patchSettings = (patch: Partial<AbntSettings>) => setSettings((s) => ({ ...s, ...patch }));
+
+  /** envolve a seleção atual do editor com um marcador (ex.: ::: center … :::) */
+  function insertAround(before: string, after: string) {
+    const ta = taRef.current;
+    if (!ta) return;
+    const start = ta.selectionStart ?? 0;
+    const end = ta.selectionEnd ?? start;
+    const sel = markdown.slice(start, end) || "texto";
+    const pre = start === 0 || markdown[start - 1] === "\n" ? "" : "\n";
+    const rest = markdown.slice(end);
+    const post = rest.startsWith("\n") || rest === "" ? "\n\n" : "\n";
+    const snippet = `${pre}${before}${sel}${after}${post}`;
+    setMarkdown(markdown.slice(0, start) + snippet + rest);
+    requestAnimationFrame(() => {
+      ta.focus();
+      ta.setSelectionRange(start + pre.length + before.length, start + pre.length + before.length + sel.length);
+    });
+  }
+
+  /** insere uma linha independente no cursor (ex.: <!-- pagebreak -->) */
+  function insertLine(text: string) {
+    const ta = taRef.current;
+    if (!ta) return;
+    const pos = ta.selectionStart ?? markdown.length;
+    const pre = pos === 0 || markdown[pos - 1] === "\n" ? "" : "\n";
+    const snippet = `${pre}${text}\n\n`;
+    setMarkdown(markdown.slice(0, pos) + snippet + markdown.slice(pos));
+    requestAnimationFrame(() => {
+      ta.focus();
+      ta.setSelectionRange(pos + snippet.length, pos + snippet.length);
+    });
+  }
 
   /** carrega o template de relatório e alterna para o estilo Relatório Técnico */
   function loadReportTemplate() {
@@ -115,6 +158,7 @@ export default function Home() {
         </div>
       </div>
       <Textarea
+        ref={taRef}
         value={markdown}
         onChange={(e) => setMarkdown(e.target.value)}
         placeholder="# Cole aqui suas anotações em Markdown..."
@@ -122,11 +166,49 @@ export default function Home() {
         aria-label="Editor de Markdown"
         spellCheck={false}
       />
+      <div className="border-t px-3 py-2">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="mr-1 text-[11px] font-semibold text-neutral-500 dark:text-neutral-400">Dicas rápidas:</span>
+          <span
+            className="rounded border border-dashed border-neutral-300 bg-neutral-50 px-2 py-1 text-[11px] text-neutral-500 dark:border-neutral-700 dark:bg-neutral-800/60 dark:text-neutral-400"
+            title="Com “Enter cria quebra de linha” ligado, pressionar Enter quebra a linha no documento"
+          >
+            Enter = quebra de linha
+          </span>
+          {ALIGN_CHIPS.map((chip) => (
+            <button
+              key={chip.tag}
+              type="button"
+              onClick={() => insertAround(`::: ${chip.tag}\n`, "\n:::")}
+              title={`${chip.title} — aplica ao texto selecionado`}
+              className="rounded border border-teal-700/40 bg-teal-50 px-2 py-1 text-[11px] font-medium text-teal-800 transition-colors hover:bg-teal-100 dark:border-teal-500/40 dark:bg-teal-950/40 dark:text-teal-300 dark:hover:bg-teal-900/40"
+            >
+              {chip.label}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => insertLine("<!-- pagebreak -->")}
+            title="Insere <!-- pagebreak --> no cursor para começar uma nova página"
+            className="rounded border border-neutral-300 bg-white px-2 py-1 text-[11px] font-medium text-neutral-700 transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700"
+          >
+            Quebra de página
+          </button>
+          <button
+            type="button"
+            onClick={() => (isMobile ? setMobileTab("guide") : setRightTab("guide"))}
+            className="ml-auto flex items-center gap-1 text-[11px] font-medium text-teal-700 underline-offset-2 transition-colors hover:underline dark:text-teal-400"
+          >
+            <BookOpen className="h-3.5 w-3.5" />
+            Guia completo
+          </button>
+        </div>
+      </div>
     </div>
   );
 
   const rightTabs = (
-    <Tabs defaultValue="preview" className="flex h-full min-h-0 flex-col">
+    <Tabs value={rightTab} onValueChange={setRightTab} className="flex h-full min-h-0 flex-col">
       <TabsList className="grid w-full grid-cols-3 rounded-lg bg-white p-1 shadow-sm dark:bg-neutral-900">
         <TabsTrigger value="preview" className="text-xs">
           <ScrollText className="mr-1.5 h-3.5 w-3.5" />
@@ -136,7 +218,7 @@ export default function Home() {
           Configurações
         </TabsTrigger>
         <TabsTrigger value="guide" className="text-xs">
-          Guia
+          Dicas de sintaxe
         </TabsTrigger>
       </TabsList>
       <TabsContent value="preview" className="mt-3 min-h-0 flex-1 overflow-auto rounded-xl bg-neutral-200/70 p-4 dark:bg-neutral-800/60">
@@ -206,12 +288,12 @@ export default function Home() {
 
       <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-4 sm:px-6">
         {isMobile ? (
-          <Tabs defaultValue="editor" className="flex h-[calc(100vh-140px)] min-h-[560px] flex-col">
+          <Tabs value={mobileTab} onValueChange={setMobileTab} className="flex h-[calc(100vh-140px)] min-h-[560px] flex-col">
             <TabsList className="grid w-full grid-cols-4 rounded-lg bg-white p-1 shadow-sm dark:bg-neutral-900">
               <TabsTrigger value="editor" className="text-xs">Editor</TabsTrigger>
               <TabsTrigger value="preview" className="text-xs">Prévia</TabsTrigger>
               <TabsTrigger value="settings" className="text-xs">Ajustes</TabsTrigger>
-              <TabsTrigger value="guide" className="text-xs">Guia</TabsTrigger>
+              <TabsTrigger value="guide" className="text-xs">Dicas</TabsTrigger>
             </TabsList>
             <TabsContent value="editor" className="mt-3 min-h-0 flex-1">
               {editorCard}

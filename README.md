@@ -7,8 +7,11 @@ Aplicação web que converte notas em **Markdown** para documentos acadêmicos n
 - **Dois estilos de documento** no seletor do painel: **Artigo ABNT** (NBR 14724/6022) e **Relatório Técnico** (réplica dos relatórios "Experimento" do curso de Engenharia de Controle e Automação — IFC Campus Luzerna)
 - **Editor Markdown** com pré-visualização em tempo real (estilo ABNT ou relatório)
 - **Formatação NBR 14724** (estilo ABNT): A4, margens 3 cm (esquerda/superior) e 2 cm (direita/inferior), Times New Roman ou Arial 12 pt, espaçamento 1,5
-- **Formatação do Relatório Técnico**: margens 3/3/2,5/2,5 cm, Times 12, espaçamento 1,15, capa em tabela institucional com logos no cabeçalho de todas as páginas, seções numeradas sem negrito, linhas de cálculo sem recuo, tabelas com grade completa e sem numeração de página
+- **Formatação do Relatório Técnico**: margens 3/3/2,5/2,5 cm, Times 12, espaçamento 1,15, cabeçalho institucional de texto (instituição + curso + régua verde) em todas as páginas, seções numeradas em negrito, corpo justificado, linhas de cálculo sem recuo, tabelas com grade completa e sem numeração de página. Título + tabela de identificação ficam na 1ª página e o texto começa logo em seguida — tudo junto, sem quebra de página
 - **Template de relatório** pronto: botão "Template de relatório" carrega o esqueleto (1. Descrição da atividade → 2. Análise Teórica → 3. Metodologia → 4. Resultados → 5. Conclusão)
+- **Quebra de linha com Enter** (pular linha): ajustável nas Configurações — desligado, linhas consecutivas viram um parágrafo contínuo
+- **Alinhamento livre**: blocos `::: center` / `::: left` / `::: right` / `::: justify` (aceita centro, esquerda, direita, justificado) aplicam posicionamento a parágrafos, títulos e imagens — com o mesmo resultado no DOCX, no PDF e na prévia
+- **Quebra de página manual**: escreva `<!-- pagebreak -->` (ou `<!-- quebra de página -->`) para iniciar uma nova página onde quiser
 - **Estrutura ABNT gerada automaticamente**: capa, folha de rosto, folha de aprovação, resumo, listas de ilustrações/tabelas e sumário
 - **Numeração automática de seções** (NBR 6024) e citações autor-data (NBR 10520): `[@silva2023]` → `(SILVA, 2023)`
 - **Citações longas** (NBR 10705): recuo de 4 cm, fonte menor, sem aspas

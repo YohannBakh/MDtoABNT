@@ -24,8 +24,10 @@ import {
   Tab,
   WidthType,
 } from "docx";
+import type { IRunOptions } from "docx";
 import type {
   AbntDocument,
+  Align,
   Block,
   HeadingBlock,
   InlineRun,
@@ -56,9 +58,12 @@ function mainFont(doc: AbntDocument) {
 
 /* ------------------------- corridas ------------------------- */
 
-function tr(r: InlineRun, size: number, font: string, mono: string, boldOverride?: boolean): TextRun {
-  const opts = {
-    text: r.text,
+/**
+ * Cria os TextRun de uma corrida; quebras de linha (\n) viram <w:br/> reais,
+ * pois a biblioteca docx não interpreta \n dentro do texto.
+ */
+function tr(r: InlineRun, size: number, font: string, mono: string, boldOverride?: boolean): TextRun[] {
+  const opts: IRunOptions = {
     size: r.code ? 20 : size,
     font: r.code ? mono : font,
     ...(r.bold || boldOverride ? { bold: true } : {}),
@@ -66,12 +71,15 @@ function tr(r: InlineRun, size: number, font: string, mono: string, boldOverride
     ...(r.underline ? { underline: {} } : {}),
     ...(r.sup ? { superScript: true } : {}),
     ...(r.sub ? { subScript: true } : {}),
-  } as ConstructorParameters<typeof TextRun>[0];
-  return new TextRun(opts);
+  };
+  return r.text.split("\n").map((part, i) => {
+    const runOpts: IRunOptions = { ...opts, text: part, break: i > 0 ? 1 : undefined };
+    return new TextRun(runOpts);
+  });
 }
 
 export function runsOf(runs: InlineRun[], size: number, font: string, mono: string, boldOverride?: boolean): TextRun[] {
-  return runs.map((r) => tr(r, size, font, mono, boldOverride));
+  return runs.flatMap((r) => tr(r, size, font, mono, boldOverride));
 }
 
 function emptyLine(): Paragraph {
@@ -195,12 +203,12 @@ function tableBlockToDocx(tb: TableBlock, doc: AbntDocument): (Paragraph | Table
   return out;
 }
 
-function figureBlocksToDocx(buf: Buffer, kind: "png" | "jpg" | "gif", w: number, h: number, caption: string | undefined, source: string | undefined, doc: AbntDocument): (Paragraph | Table)[] {
+function figureBlocksToDocx(buf: Buffer, kind: "png" | "jpg" | "gif", w: number, h: number, caption: string | undefined, source: string | undefined, doc: AbntDocument, align?: Align): (Paragraph | Table)[] {
   const out: (Paragraph | Table)[] = [];
   if (caption) out.push(captionPara("Figura", caption, doc, true));
   out.push(
     new Paragraph({
-      alignment: AlignmentType.CENTER,
+      alignment: align === "left" ? AlignmentType.LEFT : align === "right" ? AlignmentType.RIGHT : AlignmentType.CENTER,
       spacing: { before: 120, after: 120, line: LINE_10 },
       children: [new ImageRun({ type: kind, data: buf, transformation: { width: w, height: h } })],
     })
@@ -456,8 +464,18 @@ export async function buildDocxBlob(doc: AbntDocument): Promise<Buffer> {
         if (b.special) continue; // resumo/abstract/referências têm páginas próprias
         pushAll(headingParas(b, doc));
         break;
-      case "paragraph":
-        pushAll([bodyPara(b.runs, doc, { indentFirst: true, align: AlignmentType.JUSTIFIED })]);
+      case "paragraph": {
+        const a = b.align;
+        pushAll([
+          bodyPara(b.runs, doc, {
+            indentFirst: a !== "center" && a !== "right",
+            align: a === "center" ? AlignmentType.CENTER : a === "right" ? AlignmentType.RIGHT : a === "left" ? AlignmentType.LEFT : AlignmentType.JUSTIFIED,
+          }),
+        ]);
+        break;
+      }
+      case "pagebreak":
+        pushAll([pageBreak()]);
         break;
       case "blockquote":
         pushAll([
@@ -485,7 +503,7 @@ export async function buildDocxBlob(doc: AbntDocument): Promise<Buffer> {
         const maxH = px(PAGE_H - M_TOP - M_BOTTOM) - 200;
         if (img) {
           const { width, height } = fitImage(img, maxW, maxH);
-          pushAll(figureBlocksToDocx(img.buf, img.kind, width, height, b.caption, b.sourceNote, doc));
+          pushAll(figureBlocksToDocx(img.buf, img.kind, width, height, b.caption, b.sourceNote, doc, b.align));
         } else {
           // espaço reservado
           if (b.caption) pushAll([captionPara("Figura", b.caption, doc, true)]);

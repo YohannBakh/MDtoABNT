@@ -1,8 +1,9 @@
 /* ------------------------------------------------------------------
  * MD2ABNT — Gerador DOCX no estilo Relatório Técnico de Experimento
- * Réplica da formatação dos relatórios do curso de Engenharia de
- * Controle e Automação (IFC Campus Luzerna), a partir dos modelos
- * "Experimento 3/4/5.docx" enviados pelo usuário.
+ * Layout do modelo do curso (IFC Luzerna): cabeçalho institucional de
+ * texto em todas as páginas, título + tabela de identificação na 1ª
+ * página seguidos imediatamente do texto, margens 3/3/2,5/2,5 cm,
+ * Times 12, espaçamento 1,15, seções numeradas em negrito.
  * ------------------------------------------------------------------ */
 import {
   AlignmentType,
@@ -11,6 +12,7 @@ import {
   Header,
   ImageRun,
   Packer,
+  PageBreak,
   Paragraph,
   Table,
   TableCell,
@@ -21,11 +23,10 @@ import {
   VerticalAlign,
   WidthType,
 } from "docx";
-import type { AbntDocument, Block, InlineRun, TableBlock } from "./types";
+import type { AbntDocument, Align, Block, InlineRun, TableBlock } from "./types";
 import { REPORT, fontFamilies, MONO_FONTS } from "./types";
 import { runsOf } from "./docx";
 import { fitImage, loadImage } from "./image";
-import { LOGO_DIREITA_BASE64, LOGO_ESQUERDA_BASE64 } from "./logos";
 
 const CM = 566.93;
 const PAGE_W = 11906;
@@ -41,8 +42,6 @@ const IND_SEC = Math.round(REPORT.sectionIndent * CM);
 const IND_SEC_HANG = Math.round(REPORT.sectionHanging * CM);
 
 const px = (twips: number) => Math.round((twips / 20) * (96 / 72));
-
-const b64 = (dataUri: string) => Buffer.from(dataUri.split(",")[1], "base64");
 
 const gridBorder = { style: BorderStyle.SINGLE, size: 6, color: "000000" };
 const gridBorders = {
@@ -66,39 +65,42 @@ function looksLikeCalculation(text: string): boolean {
   return /=/.test(t) && /\d/.test(t);
 }
 
-/* ------------------- cabeçalho com as logos institucionais ------------------- */
-function logosHeader(doc: AbntDocument): Header {
-  // larguras em cm: esquerda ≈ 5,5 cm (aspecto 4,15), direita ≈ 4,8 cm (aspecto 3,01)
-  const wLeft = Math.round(5.5 * 37.795);
-  const hLeft = Math.round(wLeft / 4.153);
-  const wRight = Math.round(4.8 * 37.795);
-  const hRight = Math.round(wRight / 3.011);
+/* --------------- cabeçalho institucional de texto (2 linhas + régua) --------------- */
+function textHeader(doc: AbntDocument): Header {
+  const rc = doc.settings.report;
   const f = mainFont(doc);
+  const green = REPORT.headerGreen;
+  const gray = REPORT.headerGray;
   return new Header({
     children: [
       new Paragraph({
-        alignment: AlignmentType.LEFT,
-        tabStops: [{ type: TabStopType.RIGHT, position: CONTENT_W }],
-        spacing: { after: 120, line: LINE_115 },
-        children: [
-          new ImageRun({
-            type: "png",
-            data: b64(LOGO_ESQUERDA_BASE64),
-            transformation: { width: wLeft, height: hLeft },
-          }),
-          new TextRun({ children: [new Tab()], font: f.docx }),
-          new ImageRun({
-            type: "png",
-            data: b64(LOGO_DIREITA_BASE64),
-            transformation: { width: wRight, height: hRight },
-          }),
-        ],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 40, line: LINE_115 },
+        children: [new TextRun({ text: rc.headerInstitution, size: 24, font: f.docx, bold: true, color: green })],
+      }),
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 60, line: LINE_115 },
+        border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: green, space: 3 } },
+        children: [new TextRun({ text: rc.course, size: 18, font: f.docx, color: gray })],
       }),
     ],
   });
 }
 
-/* --------------------------- capa (tabela) --------------------------- */
+/* ---------------- título + tabela de identificação (1ª página) ---------------- */
+
+function coverTitle(doc: AbntDocument): Paragraph {
+  const rc = doc.settings.report;
+  const f = mainFont(doc);
+  const num = rc.activityNumber.trim();
+  return new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { after: 100, line: LINE_115 },
+    children: [new TextRun({ text: `${rc.activityLabel}${num ? ` Nº ${num}` : ""}`, size: 32, font: f.docx, bold: true })],
+  });
+}
+
 function coverTable(doc: AbntDocument): Table {
   const s = doc.settings.report;
   const f = mainFont(doc);
@@ -109,22 +111,6 @@ function coverTable(doc: AbntDocument): Table {
       verticalAlign: VerticalAlign.CENTER,
       margins: { top: 60, bottom: 60, left: 100, right: 100 },
       children: children.filter((p): p is Paragraph => p !== undefined),
-    });
-
-  const cellPara = (text: string, opts: { bold?: boolean; center?: boolean } = {}) =>
-    new Paragraph({
-      alignment: opts.center ? AlignmentType.CENTER : AlignmentType.LEFT,
-      spacing: { line: LINE_115 },
-      children: [new TextRun({ text, size: 24, font: f.docx, bold: opts.bold })],
-    });
-
-  const merged = (text: string) =>
-    new TableCell({
-      width: { size: CONTENT_W, type: WidthType.DXA },
-      columnSpan: 2,
-      verticalAlign: VerticalAlign.CENTER,
-      margins: { top: 60, bottom: 60, left: 100, right: 100 },
-      children: [cellPara(text, { bold: true, center: true })],
     });
 
   const num = s.activityNumber.trim();
@@ -150,8 +136,6 @@ function coverTable(doc: AbntDocument): Table {
     columnWidths: [colW, colW],
     borders: gridBorders,
     rows: [
-      row([merged(s.course)], 664),
-      row([merged(`${s.activityLabel}${num ? ` Nº ${num}` : ""}`)], 417),
       row([mk([val("Disciplina", s.disciplina)]), mk([val("Turma", s.turma)])], 340),
       row([mk([val("Professor", s.professor)]), mk([val("Período", s.periodo)])], 340),
       row([mk([val("Aluno(s)", authors)]), mk([val("Data da atividade", s.dataAtividade)])], 340),
@@ -163,24 +147,36 @@ function coverTable(doc: AbntDocument): Table {
 
 function headingPara(h: Extract<Block, { type: "heading" }>, doc: AbntDocument): Paragraph {
   const f = mainFont(doc);
-  const text = `${h.number ? (h.level === 1 ? `${h.number}. ` : `${h.number} `) : ""}${h.runs.map((r) => r.text).join("")}`;
+  const label = h.number ? (h.level === 1 ? `${h.number}. ` : `${h.number} `) : "";
   const left = h.level === 1 ? IND_SEC : Math.round(IND_SEC + (h.level - 1) * 567);
   return new Paragraph({
-    alignment: AlignmentType.LEFT,
-    indent: { left, hanging: IND_SEC_HANG },
-    spacing: { line: LINE_115 },
+    alignment: h.centered ? AlignmentType.CENTER : AlignmentType.LEFT,
+    indent: h.centered ? undefined : { left, hanging: IND_SEC_HANG },
+    spacing: { before: 240, line: LINE_115 },
     keepNext: true,
-    children: [new TextRun({ text, size: 24, font: f.docx })],
+    children: [
+      ...(label ? [new TextRun({ text: label, size: 24, font: f.docx, bold: true })] : []),
+      ...runsOf(h.runs, 24, f.docx, MONO_FONTS.docx, true),
+    ],
   });
 }
 
-function bodyPara(runs: InlineRun[], doc: AbntDocument): Paragraph {
+function bodyPara(runs: InlineRun[], doc: AbntDocument, align?: Align): Paragraph {
   const text = runs.map((r) => r.text).join("");
   const isCalc = looksLikeCalculation(text);
   const f = mainFont(doc);
+  const alignment =
+    align === "center"
+      ? AlignmentType.CENTER
+      : align === "right"
+        ? AlignmentType.RIGHT
+        : align === "left"
+          ? AlignmentType.LEFT
+          : AlignmentType.JUSTIFIED;
+  const noIndent = isCalc || align === "center" || align === "right";
   return new Paragraph({
-    alignment: AlignmentType.LEFT,
-    indent: isCalc ? undefined : { firstLine: IND_FIRST },
+    alignment,
+    indent: noIndent ? undefined : { firstLine: IND_FIRST },
     spacing: { line: LINE_115 },
     children: runsOf(runs, 24, f.docx, MONO_FONTS.docx),
   });
@@ -254,11 +250,11 @@ function equationPara(runs: InlineRun[], num: number | undefined, doc: AbntDocum
 }
 
 /* figuras: legenda e fonte ABAIXO (padrão dos relatórios), ambas 12pt centradas */
-function figureBlocks(buf: Buffer, kind: "png" | "jpg" | "gif", w: number, h: number, caption: string | undefined, num: number | undefined, source: string | undefined, doc: AbntDocument): (Paragraph | Table)[] {
+function figureBlocks(buf: Buffer, kind: "png" | "jpg" | "gif", w: number, h: number, caption: string | undefined, num: number | undefined, source: string | undefined, doc: AbntDocument, align?: Align): (Paragraph | Table)[] {
   const f = mainFont(doc);
   const out: (Paragraph | Table)[] = [
     new Paragraph({
-      alignment: AlignmentType.CENTER,
+      alignment: align === "left" ? AlignmentType.LEFT : align === "right" ? AlignmentType.RIGHT : AlignmentType.CENTER,
       spacing: { before: 120, after: 60, line: LINE_115 },
       children: [new ImageRun({ type: kind, data: buf, transformation: { width: w, height: h } })],
     }),
@@ -355,11 +351,12 @@ export async function buildReportDocxBlob(doc: AbntDocument): Promise<Buffer> {
   const f = mainFont(doc);
   const mono = MONO_FONTS.docx;
 
-  /* pré-textual: capa em tabela (seguida por espaçador) */
+  /* pré-textual: título + tabela de identificação, seguidos direto do corpo */
   const pre: (Paragraph | Table)[] = [];
-  if (t.capa) {
+  if (s.report.showCover) {
+    pre.push(coverTitle(doc));
     pre.push(coverTable(doc));
-    pre.push(new Paragraph({ spacing: { after: 200, line: LINE_115 }, children: [] }));
+    pre.push(new Paragraph({ spacing: { after: 120, line: LINE_115 }, children: [] }));
   }
 
   /* corpo */
@@ -374,7 +371,10 @@ export async function buildReportDocxBlob(doc: AbntDocument): Promise<Buffer> {
         bodyChildren.push(headingPara(b, doc));
         break;
       case "paragraph":
-        bodyChildren.push(bodyPara(b.runs, doc));
+        bodyChildren.push(bodyPara(b.runs, doc, b.align));
+        break;
+      case "pagebreak":
+        bodyChildren.push(new Paragraph({ children: [new PageBreak()] }));
         break;
       case "blockquote":
         bodyChildren.push(blockquotePara(b.runs, doc));
@@ -398,7 +398,7 @@ export async function buildReportDocxBlob(doc: AbntDocument): Promise<Buffer> {
         const maxH = px(PAGE_H - M_TOP - M_BOTTOM) - 300;
         if (img) {
           const { width, height } = fitImage(img, maxW, maxH);
-          bodyChildren.push(...figureBlocks(img.buf, img.kind, width, height, b.caption, b.num, b.sourceNote, doc));
+          bodyChildren.push(...figureBlocks(img.buf, img.kind, width, height, b.caption, b.num, b.sourceNote, doc, b.align));
         } else {
           bodyChildren.push(
             new Paragraph({
@@ -445,7 +445,7 @@ export async function buildReportDocxBlob(doc: AbntDocument): Promise<Buffer> {
     }
   }
 
-  const logos = logosHeader(doc);
+  const logos = textHeader(doc);
 
   const document = new Document({
     creator: "MD2ABNT",

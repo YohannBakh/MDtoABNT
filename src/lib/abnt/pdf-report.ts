@@ -1,15 +1,14 @@
 /* ------------------------------------------------------------------
  * MD2ABNT — Gerador PDF no estilo Relatório Técnico de Experimento
- * Réplica da formatação dos relatórios "Experimento 3/4/5.docx":
- * margens 3/3/2,5/2,5 cm, Times 12, espaçamento 1,15, seções numeradas
- * sem negrito, capa em tabela com grade, logos institucionais no
- * cabeçalho de todas as páginas, sem numeração de página.
+ * Layout do modelo do curso (IFC Luzerna): cabeçalho institucional de
+ * texto em todas as páginas, título + tabela de identificação na 1ª
+ * página seguidos direto do texto, margens 3/3/2,5/2,5 cm, Times 12,
+ * espaçamento 1,15, seções numeradas em negrito, sem numeração de página.
  * ------------------------------------------------------------------ */
 import PDFDocument from "pdfkit";
 import type { AbntDocument, Block, HeadingBlock, InlineRun, TableBlock } from "./types";
 import { REPORT, fontFamilies, MONO_FONTS } from "./types";
 import { fitImage, loadImage } from "./image";
-import { LOGO_DIREITA_BASE64, LOGO_ESQUERDA_BASE64 } from "./logos";
 
 type PdfFontMap = { regular: string; bold: string; italic: string; boldItalic: string };
 
@@ -24,17 +23,15 @@ interface Token {
 }
 
 const CM = 28.3465; // pt
-const MT = 2.9 * CM; // conteúdo começa abaixo das logos
+const MT = 2.9 * CM; // conteúdo começa abaixo do cabeçalho institucional
 const ML = REPORT.margin.left * CM;
 const MB = REPORT.margin.bottom * CM;
 const MR = REPORT.margin.right * CM;
-const LOGO_Y = 0.85 * CM; // posição vertical da faixa de logos
+const HDR_Y = 0.75 * CM; // topo da 1ª linha do cabeçalho
 const IND_FIRST = REPORT.firstLineIndent * CM;
 const IND_SEC = REPORT.sectionIndent * CM;
 const IND_HANG = REPORT.sectionHanging * CM;
 const LINE_FACTOR = REPORT.lineFactor; // 1,15
-
-const b64 = (dataUri: string) => Buffer.from(dataUri.split(",")[1], "base64");
 
 function fontFor(r: InlineRun, f: PdfFontMap, mono: PdfFontMap, mathMap: PdfFontMap | null): string {
   if (r.math && mathMap) return r.bold ? mathMap.bold : mathMap.regular;
@@ -168,9 +165,11 @@ export async function buildReportPdfBuffer(doc: AbntDocument): Promise<Buffer> {
 
   const drawLines = (
     lines: Line[],
-    o: { x: number; width: number; align: "left" | "center" | "right"; leading: number; firstIndent: number; size: number }
+    o: { x: number; width: number; align: "left" | "center" | "right" | "justify"; leading: number; firstIndent: number; size: number }
   ): void => {
     lines.forEach((line, idx) => {
+      const last = idx === lines.length - 1;
+      const canJustify = o.align === "justify" && !last && !line.hardBreak && line.spaces > 0;
       const lineH = o.leading;
       if (y + lineH > BOTTOM) {
         pdf.addPage();
@@ -181,9 +180,10 @@ export async function buildReportPdfBuffer(doc: AbntDocument): Promise<Buffer> {
       const free = o.width - (idx === 0 ? o.firstIndent : 0) - line.width;
       if (o.align === "center") startX = o.x + free / 2;
       else if (o.align === "right") startX = o.x + free;
+      const perSpace = canJustify ? Math.max(0, free) / Math.max(line.spaces, 1) : 0;
       let cx = startX;
       for (const it of line.items) {
-        if (it.spaceBefore) cx += it.spaceBefore;
+        if (it.spaceBefore) cx += it.spaceBefore + perSpace;
         const dy = it.t.sup ? -0.32 * o.size : it.t.sub ? 0.18 * o.size : 0;
         pdf.font(it.t.font).fontSize(it.t.size).fillColor("#000000");
         pdf.text(it.t.text, cx, baseline + dy, { lineBreak: false, baseline: 0 });
@@ -195,7 +195,7 @@ export async function buildReportPdfBuffer(doc: AbntDocument): Promise<Buffer> {
 
   const paragraph = (
     runs: InlineRun[],
-    o: { size?: number; align?: "left" | "center" | "right"; firstIndent?: number; left?: number; gapBefore?: number; gapAfter?: number } = {}
+    o: { size?: number; align?: "left" | "center" | "right" | "justify"; firstIndent?: number; left?: number; gapBefore?: number; gapAfter?: number } = {}
   ): void => {
     const size = o.size ?? 12;
     const leading = LINE_FACTOR * size * 1.15;
@@ -220,58 +220,101 @@ export async function buildReportPdfBuffer(doc: AbntDocument): Promise<Buffer> {
     }
   };
 
-  /* --------------------- capa em tabela --------------------- */
+  /* ------------- título + tabela de identificação (1ª página) ------------- */
 
-  if (t.capa) {
+  if (s.report.showCover) {
     const rc = s.report;
     const colW = CW / 2;
-    const rowH = [1.17 * CM, 0.74 * CM, 0.6 * CM, 0.6 * CM, 0.6 * CM];
+    const rowHMin = 0.6 * CM;
+    const padX = 6;
+    const cellLineH = 13.8;
     const num = rc.activityNumber.trim();
     const authors = s.authors.filter((a) => a.trim()).join("; ");
-    const rowsText: { cells: { label: string; value: string; center?: boolean; bold?: boolean }[]; heights: number }[] = [
-      { cells: [{ label: rc.course, value: "", center: true, bold: true }], heights: rowH[0] },
-      { cells: [{ label: `${rc.activityLabel}${num ? ` Nº ${num}` : ""}`, value: "", center: true, bold: true }], heights: rowH[1] },
-      { cells: [{ label: "Disciplina:", value: rc.disciplina }, { label: "Turma:", value: rc.turma }], heights: rowH[2] },
-      { cells: [{ label: "Professor:", value: rc.professor }, { label: "Período:", value: rc.periodo }], heights: rowH[3] },
-      { cells: [{ label: "Aluno(s):", value: authors }, { label: "Data da atividade:", value: rc.dataAtividade }], heights: rowH[4] },
-    ];
+    const title = `${rc.activityLabel}${num ? ` Nº ${num}` : ""}`;
 
-    let cy = y;
-    const tableTop = cy;
-    for (const row of rowsText) {
-      const rh = row.heights;
-      if (row.cells.length === 1) {
-        // linha mesclada — texto centralizado
-        const c = row.cells[0];
-        pdf.font(c.bold ? f.bold : f.regular).fontSize(12).fillColor("#000000");
-        const txt = c.label;
-        const tw = measure(txt, c.bold ? f.bold : f.regular, 12);
-        pdf.text(txt, ML + (CW - tw) / 2, cy + (rh - 12) / 2 + 2, { lineBreak: false, baseline: 0 });
-      } else {
-        for (let i = 0; i < 2; i++) {
-          const c = row.cells[i];
-          const cx = ML + i * colW + 6;
-          pdf.font(f.bold).fontSize(12).fillColor("#000000");
-          const lw = measure(c.label, f.bold, 12);
-          pdf.text(c.label, cx, cy + (rh - 12) / 2 + 2, { lineBreak: false, baseline: 0 });
-          if (c.value) {
-            pdf.font(f.regular).fontSize(12).fillColor("#000000");
-            pdf.text(c.value, cx + lw + 3, cy + (rh - 12) / 2 + 2, { lineBreak: false, baseline: 0 });
-          }
+    // título centralizado e em negrito (16pt), fora da tabela
+    paragraph([{ text: title, bold: true }], { align: "center", size: 16, gapAfter: 6 });
+
+    /** quebra o valor em linhas que caibam na largura disponível */
+    const wrapWords = (text: string, font: string, size: number, maxWidth: number): string[] => {
+      const words = text.split(/\s+/).filter(Boolean);
+      if (!words.length) return [];
+      const lines: string[] = [];
+      let cur = "";
+      for (const w of words) {
+        const cand = cur ? `${cur} ${w}` : w;
+        if (!cur || measure(cand, font, size) <= maxWidth) cur = cand;
+        else {
+          lines.push(cur);
+          cur = w;
         }
       }
-      cy += rh;
+      if (cur) lines.push(cur);
+      return lines;
+    };
+
+    const rowsText: { cells: { label: string; value: string }[] }[] = [
+      { cells: [{ label: "Disciplina:", value: rc.disciplina }, { label: "Turma:", value: rc.turma }] },
+      { cells: [{ label: "Professor:", value: rc.professor }, { label: "Período:", value: rc.periodo }] },
+      { cells: [{ label: "Aluno(s):", value: authors }, { label: "Data da atividade:", value: rc.dataAtividade }] },
+    ];
+
+    const tableTop = y;
+    let cy = y;
+    for (const row of rowsText) {
+      // pré-cálculo das linhas de cada célula (rótulo na 1ª linha, valor quebrado ao lado)
+      const cellLayout = row.cells.map((c) => {
+        const labelW = measure(c.label, f.bold, 12);
+        const availFirst = colW - 2 * padX - labelW - 3;
+        const availNext = colW - 2 * padX;
+        const vLines = wrapWords(c.value, f.regular, 12, availNext);
+        // distribui a 1ª palavra na linha do rótulo quando couber
+        const lines: string[] = [];
+        if (vLines.length) {
+          let rest = vLines;
+          if (measure(vLines[0], f.regular, 12) <= availFirst) {
+            lines.push(vLines[0]);
+            rest = vLines.slice(1);
+          } else {
+            lines.push("");
+            rest = vLines;
+          }
+          // quebra o restante nas larguras corretas
+          for (const ln of rest) {
+            if (!lines[lines.length - 1]) lines[lines.length - 1] = ln;
+            else if (measure(`${lines[lines.length - 1]} ${ln}`, f.regular, 12) <= availNext && lines[lines.length - 1]) {
+              lines[lines.length - 1] = `${lines[lines.length - 1]} ${ln}`;
+            } else lines.push(ln);
+          }
+        }
+        return { label: c.label, valueLines: lines, labelW };
+      });
+      const nLines = Math.max(1, ...cellLayout.map((c) => Math.max(1, c.valueLines.length)));
+      const rowH = Math.max(rowHMin, nLines * cellLineH + 6);
+
+      for (let i = 0; i < 2; i++) {
+        const cell = cellLayout[i];
+        const cx = ML + i * colW + padX;
+        const firstBaseline = cy + 12.8;
+        pdf.font(f.bold).fontSize(12).fillColor("#000000");
+        pdf.text(cell.label, cx, firstBaseline, { lineBreak: false, baseline: 0 });
+        pdf.font(f.regular).fontSize(12).fillColor("#000000");
+        cell.valueLines.forEach((ln, li) => {
+          const bx = li === 0 ? cx + cell.labelW + 3 : cx;
+          pdf.text(ln, bx, firstBaseline + li * cellLineH, { lineBreak: false, baseline: 0 });
+        });
+      }
+      cy += rowH;
       // linha horizontal após a row
       pdf.moveTo(ML, cy).lineTo(ML + CW, cy).lineWidth(0.7).strokeColor("#000000").stroke();
     }
-    // borda externa + divisória central (só nas linhas de campos, abaixo das mescladas)
-    const dividerTop = tableTop + rowH[0] + rowH[1];
+    // borda externa + divisória central
     pdf.moveTo(ML, tableTop).lineTo(ML + CW, tableTop).lineWidth(0.7).strokeColor("#000000").stroke();
     pdf.moveTo(ML, tableTop).lineTo(ML, cy).lineWidth(0.7).strokeColor("#000000").stroke();
     pdf.moveTo(ML + CW, tableTop).lineTo(ML + CW, cy).lineWidth(0.7).strokeColor("#000000").stroke();
-    pdf.moveTo(ML + colW, dividerTop).lineTo(ML + colW, cy).lineWidth(0.7).strokeColor("#000000").stroke();
+    pdf.moveTo(ML + colW, tableTop).lineTo(ML + colW, cy).lineWidth(0.7).strokeColor("#000000").stroke();
 
-    y = cy + 14;
+    y = cy + 10;
   }
 
   /* --------------------------- corpo --------------------------- */
@@ -285,8 +328,15 @@ export async function buildReportPdfBuffer(doc: AbntDocument): Promise<Buffer> {
   const renderHeading = (h: HeadingBlock): void => {
     const display = headingDisplay(h);
     ensureSpace(2 * LINE_FACTOR * 12 * 1.15);
-    const left = h.level === 1 ? IND_SEC : IND_SEC + (h.level - 1) * 0.5 * CM;
-    paragraph([{ text: display }], { align: "left", size: 12, left, firstIndent: -IND_HANG, gapAfter: 2 });
+    const left = h.centered ? 0 : h.level === 1 ? IND_SEC : IND_SEC + (h.level - 1) * 0.5 * CM;
+    if (!h.centered) y += 6; // respiro antes da seção, como no modelo
+    paragraph([{ text: display, bold: true }], {
+      align: h.centered ? "center" : "left",
+      size: 12,
+      left,
+      firstIndent: h.centered ? 0 : -IND_HANG,
+      gapAfter: 2,
+    });
   };
 
   const renderTable = (tb: TableBlock): void => {
@@ -396,9 +446,15 @@ export async function buildReportPdfBuffer(doc: AbntDocument): Promise<Buffer> {
       case "paragraph": {
         const text = b.runs.map((r) => r.text).join("");
         const isCalc = looksLikeCalculation(text);
-        paragraph(b.runs, { align: "left", firstIndent: isCalc ? 0 : IND_FIRST });
+        const a = b.align;
+        const align = a === "center" ? "center" : a === "right" ? "right" : a === "left" ? "left" : "justify";
+        paragraph(b.runs, { align, firstIndent: isCalc || a === "center" || a === "right" ? 0 : IND_FIRST });
         break;
       }
+      case "pagebreak":
+        pdf.addPage();
+        y = MT;
+        break;
       case "blockquote":
         paragraph(b.runs, { align: "left", left: 4 * CM, gapAfter: 8 });
         break;
@@ -465,7 +521,7 @@ export async function buildReportPdfBuffer(doc: AbntDocument): Promise<Buffer> {
         if (img) {
           const { width, height } = fitImage(img, maxW, maxH);
           ensureSpace(height + 60);
-          const ix = ML + (CW - width) / 2;
+          const ix = b.align === "left" ? ML : b.align === "right" ? ML + CW - width : ML + (CW - width) / 2;
           try {
             pdf.image(img.buf, ix, y, { width, height });
           } catch {
@@ -512,24 +568,24 @@ export async function buildReportPdfBuffer(doc: AbntDocument): Promise<Buffer> {
     }
   }
 
-  /* ------------- logos institucionais em todas as páginas -------- */
+  /* -------- cabeçalho institucional de texto em todas as páginas -------- */
 
-  const logoLeft = b64(LOGO_ESQUERDA_BASE64);
-  const logoRight = b64(LOGO_DIREITA_BASE64);
-  const wLeft = 5.5 * CM;
-  const hLeft = wLeft / 4.153;
-  const wRight = 4.8 * CM;
-  const hRight = wRight / 3.011;
+  const green = `#${REPORT.headerGreen}`;
+  const gray = `#${REPORT.headerGray}`;
 
   const total = pdf.bufferedPageRange().count;
   for (let i = 0; i < total; i++) {
     pdf.switchToPage(i);
-    try {
-      pdf.image(logoLeft, ML, LOGO_Y, { width: wLeft, height: hLeft });
-      pdf.image(logoRight, ML + CW - wRight, LOGO_Y, { width: wRight, height: hRight });
-    } catch {
-      /* logos opcionais — falha silenciosa */
-    }
+    // 1ª linha: instituição — verde, negrito, centralizada
+    pdf.font(f.bold).fontSize(12).fillColor(green);
+    const w1 = measure(s.report.headerInstitution, f.bold, 12);
+    pdf.text(s.report.headerInstitution, ML + (CW - w1) / 2, HDR_Y, { lineBreak: false, baseline: 0 });
+    // 2ª linha: curso — cinza, menor, centralizada
+    pdf.font(f.regular).fontSize(9).fillColor(gray);
+    const w2 = measure(s.report.course, f.regular, 9);
+    pdf.text(s.report.course, ML + (CW - w2) / 2, HDR_Y + 17, { lineBreak: false, baseline: 0 });
+    // régua verde
+    pdf.moveTo(ML, HDR_Y + 30).lineTo(ML + CW, HDR_Y + 30).lineWidth(0.9).strokeColor(green).stroke();
   }
 
   pdf.flushPages?.();

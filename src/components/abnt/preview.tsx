@@ -3,7 +3,7 @@
 /* Prévia HTML aproximando o layout ABNT (A4) */
 
 import type { AbntDocument, Block, InlineRun } from "@/lib/abnt/types";
-import { fontFamilies, MONO_FONTS } from "@/lib/abnt/types";
+import { REPORT, fontFamilies, MONO_FONTS } from "@/lib/abnt/types";
 import { Fragment, type CSSProperties, type ReactNode } from "react";
 
 function Runs({ runs }: { runs: InlineRun[] }): ReactNode {
@@ -48,6 +48,43 @@ function TocEntry({ text, level }: { text: string; level: number }): ReactNode {
   );
 }
 
+/** Título + tabela de identificação do relatório, no topo da 1ª página (texto continua na sequência) */
+function ReportCoverBlock({ doc }: { doc: AbntDocument }): ReactNode {
+  const rc = doc.settings.report;
+  const num = rc.activityNumber.trim();
+  const authors = doc.settings.authors.filter((a) => a.trim()).join("; ");
+  const cellBase: CSSProperties = { border: "1px solid #000", padding: "3px 8px", verticalAlign: "middle", lineHeight: 1.15 };
+  const fieldCell = (label: string, value: string, key: string): ReactNode => (
+    <td key={key} style={cellBase}>
+      <b>{label}: </b>
+      {value}
+    </td>
+  );
+  return (
+    <div style={{ marginBottom: "10pt" }}>
+      <div style={{ textAlign: "center", fontWeight: 700, fontSize: "16pt", lineHeight: 1.15, margin: "4pt 0 8pt" }}>
+        {`${rc.activityLabel}${num ? ` Nº ${num}` : ""}`}
+      </div>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12pt" }}>
+        <tbody>
+          <tr style={{ height: "0.6cm" }}>
+            {fieldCell("Disciplina", rc.disciplina, "d")}
+            {fieldCell("Turma", rc.turma, "t")}
+          </tr>
+          <tr style={{ height: "0.6cm" }}>
+            {fieldCell("Professor", rc.professor, "p")}
+            {fieldCell("Período", rc.periodo, "per")}
+          </tr>
+          <tr style={{ height: "0.6cm" }}>
+            {fieldCell("Aluno(s)", authors, "a")}
+            {fieldCell("Data da atividade", rc.dataAtividade, "dt")}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export function AbntPreview({ doc }: { doc: AbntDocument }) {
   const s = doc.settings;
   const t = s.toggles;
@@ -69,26 +106,27 @@ export function AbntPreview({ doc }: { doc: AbntDocument }) {
     position: "relative",
   };
 
-  /** faixa de logos institucionais no topo (zona do cabeçalho do DOCX/PDF) */
-  const logosStrip = isReport ? (
-    <div style={{ position: "absolute", top: "0.7cm", left: "3cm", right: "3cm", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-      <img src="/logos/logo-esquerda.png" alt="Logo do curso" style={{ width: "5.5cm" }} onError={(e) => (e.currentTarget.style.display = "none")} />
-      <img src="/logos/logo-direita.png" alt="Logo da instituição" style={{ width: "4.8cm" }} onError={(e) => (e.currentTarget.style.display = "none")} />
+  /** cabeçalho institucional de texto: 2 linhas + régua verde (zona do header do DOCX/PDF) */
+  const textHeader = isReport ? (
+    <div style={{ textAlign: "center", marginBottom: "6pt" }}>
+      <div style={{ fontWeight: 700, color: `#${REPORT.headerGreen}`, fontSize: "12pt", lineHeight: 1.15 }}>{s.report.headerInstitution}</div>
+      <div style={{ color: `#${REPORT.headerGray}`, fontSize: "9pt", lineHeight: 1.15 }}>{s.report.course}</div>
+      <div style={{ borderBottom: `1pt solid #${REPORT.headerGreen}`, marginTop: "2pt" }} />
     </div>
   ) : null;
 
   const bodyPara: CSSProperties = isReport
-    ? { textAlign: "left", textIndent: "1.27cm", margin: 0, lineHeight: 1.15 }
+    ? { textAlign: "justify", textIndent: "1.27cm", margin: 0, lineHeight: 1.15 }
     : { textAlign: "justify", textIndent: "1.25cm", margin: 0 };
   const centered = (extra: CSSProperties = {}): CSSProperties => ({ textAlign: "center", ...extra });
 
   const headingStyle = (level: number, hasNumber: boolean): CSSProperties =>
     isReport
       ? {
-          fontWeight: 400,
+          fontWeight: 700,
           fontSize: "12pt",
           textAlign: "left",
-          margin: "2pt 0 2pt",
+          margin: "10pt 0 2pt",
           lineHeight: 1.15,
           marginLeft: `${0.64 + (level - 1) * 0.5}cm`,
           textIndent: "-0.64cm",
@@ -113,50 +151,6 @@ export function AbntPreview({ doc }: { doc: AbntDocument }) {
 
   /* ---------- páginas pré-textuais ---------- */
   const pages: ReactNode[] = [];
-
-  if (isReport && t.capa) {
-    const rc = s.report;
-    const num = rc.activityNumber.trim();
-    const authors = s.authors.filter((a) => a.trim()).join("; ");
-    const cellBase: CSSProperties = { border: "1px solid #000", padding: "3px 8px", verticalAlign: "middle", lineHeight: 1.15 };
-    const fieldCell = (label: string, value: string): ReactNode => (
-      <td style={cellBase}>
-        <b>{label}: </b>
-        {value}
-      </td>
-    );
-    pages.push(
-      <div style={pageStyle} key="capa-rel">
-        {logosStrip}
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12pt" }}>
-          <tbody>
-            <tr>
-              <td colSpan={2} style={{ ...cellBase, textAlign: "center", fontWeight: 700, height: "1.17cm" }}>
-                {rc.course}
-              </td>
-            </tr>
-            <tr>
-              <td colSpan={2} style={{ ...cellBase, textAlign: "center", fontWeight: 700, height: "0.74cm" }}>
-                {`${rc.activityLabel}${num ? ` Nº ${num}` : ""}`}
-              </td>
-            </tr>
-            <tr style={{ height: "0.6cm" }}>
-              {fieldCell("Disciplina", rc.disciplina)}
-              {fieldCell("Turma", rc.turma)}
-            </tr>
-            <tr style={{ height: "0.6cm" }}>
-              {fieldCell("Professor", rc.professor)}
-              {fieldCell("Período", rc.periodo)}
-            </tr>
-            <tr style={{ height: "0.6cm" }}>
-              {fieldCell("Aluno(s)", authors)}
-              {fieldCell("Data da atividade", rc.dataAtividade)}
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    );
-  }
 
   if (!isReport && t.capa) {
     pages.push(
@@ -331,18 +325,49 @@ export function AbntPreview({ doc }: { doc: AbntDocument }) {
         if (b.special) return null;
         const hasNumber = !!b.number;
         const numLabel = isReport && b.number && b.level === 1 ? `${b.number}. ` : b.number ? `${b.number} ` : "";
+        const hs = headingStyle(b.level, hasNumber);
+        const hStyle: CSSProperties = b.centered
+          ? { ...hs, textAlign: "center", marginLeft: 0, textIndent: 0 }
+          : hs;
         return (
-          <div key={i} style={headingStyle(b.level, hasNumber)}>
+          <div key={i} style={hStyle}>
             {numLabel}
             <Runs runs={b.runs} />
           </div>
         );
       }
-      case "paragraph":
+      case "paragraph": {
+        const a = b.align;
+        const baseStyle: CSSProperties = isReport && isCalc(b.runs) ? { ...bodyPara, textIndent: 0 } : bodyPara;
+        const pStyle: CSSProperties = a
+          ? {
+              ...baseStyle,
+              textAlign: a,
+              ...(a === "center" || a === "right" ? { textIndent: 0 } : {}),
+            }
+          : baseStyle;
         return (
-          <p key={i} style={isReport && isCalc(b.runs) ? { ...bodyPara, textIndent: 0 } : bodyPara}>
+          <p key={i} style={pStyle}>
             <Runs runs={b.runs} />
           </p>
+        );
+      }
+      case "pagebreak":
+        return (
+          <div
+            key={i}
+            style={{
+              borderTop: "2px dashed #a3a3a3",
+              margin: "18pt 0",
+              paddingTop: "4pt",
+              textAlign: "center",
+              fontSize: "9pt",
+              color: "#888",
+              fontFamily: monoCss,
+            }}
+          >
+            quebra de página
+          </div>
         );
       case "blockquote":
         return (
@@ -411,7 +436,12 @@ export function AbntPreview({ doc }: { doc: AbntDocument }) {
             <img
               src={b.src}
               alt={b.caption ?? "Figura"}
-              style={{ maxWidth: "100%", maxHeight: isReport ? "14cm" : "16cm", display: "block", margin: "0 auto" }}
+              style={{
+                maxWidth: "100%",
+                maxHeight: isReport ? "14cm" : "16cm",
+                display: "block",
+                ...(b.align === "left" ? { marginRight: "auto" } : b.align === "right" ? { marginLeft: "auto" } : { margin: "0 auto" }),
+              }}
               onError={(e) => {
                 const el = e.currentTarget;
                 el.style.display = "none";
@@ -521,7 +551,8 @@ export function AbntPreview({ doc }: { doc: AbntDocument }) {
 
   pages.push(
     <div style={pageStyle} key="corpo">
-      {logosStrip}
+      {textHeader}
+      {isReport && s.report.showCover ? <ReportCoverBlock doc={doc} /> : null}
       {doc.body.map(renderBlock)}
       {doc.references.length ? (
         <>

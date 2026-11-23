@@ -75,7 +75,7 @@ export function SettingsPanel({ settings, onChange }: Props) {
           </Select>
           <p className="text-[11px] text-neutral-400 dark:text-neutral-500">
             {isReport
-              ? "Réplica dos relatórios do curso: capa em tabela, logos no cabeçalho, espaçamento 1,15 e seções numeradas."
+              ? "Modelo do curso: cabeçalho institucional em todas as páginas, título e tabela de identificação na 1ª página e o texto começando logo em seguida — sem gastar página com capa."
               : "Formato acadêmico completo: capa, folha de rosto, aprovação, resumo, sumário e referências NBR."}
           </p>
         </Section>
@@ -105,40 +105,64 @@ export function SettingsPanel({ settings, onChange }: Props) {
         </Section>
 
         {isReport && (
-          <Section title="Capa do relatório">
-            <Field label="Curso (1ª linha da capa)">
+          <Section title="Cabeçalho institucional">
+            <Field label="Instituição (1ª linha do cabeçalho)">
+              <Input value={rep.headerInstitution} onChange={(e) => setRep({ headerInstitution: e.target.value })} />
+            </Field>
+            <Field label="Curso (2ª linha do cabeçalho)">
               <Input value={rep.course} onChange={(e) => setRep({ course: e.target.value })} />
             </Field>
-            <Field label="Rótulo da atividade">
-              <Input value={rep.activityLabel} onChange={(e) => setRep({ activityLabel: e.target.value })} />
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Nº da atividade (opcional)">
-                <Input value={rep.activityNumber} onChange={(e) => setRep({ activityNumber: e.target.value })} placeholder="5" />
-              </Field>
-              <Field label="Data da atividade">
-                <Input value={rep.dataAtividade} onChange={(e) => setRep({ dataAtividade: e.target.value })} placeholder="14/09/2026" />
-              </Field>
-              <Field label="Disciplina">
-                <Input value={rep.disciplina} onChange={(e) => setRep({ disciplina: e.target.value })} />
-              </Field>
-              <Field label="Turma">
-                <Input value={rep.turma} onChange={(e) => setRep({ turma: e.target.value })} />
-              </Field>
-              <Field label="Professor">
-                <Input value={rep.professor} onChange={(e) => setRep({ professor: e.target.value })} />
-              </Field>
-              <Field label="Período">
-                <Input value={rep.periodo} onChange={(e) => setRep({ periodo: e.target.value })} />
-              </Field>
+            <p className="text-[11px] text-neutral-400 dark:text-neutral-500">
+              Aparece no topo de todas as páginas, com a régua verde — igual ao modelo do curso.
+            </p>
+          </Section>
+        )}
+
+        {isReport && (
+          <Section title="Identificação da atividade">
+            <div className="flex items-center justify-between gap-4 rounded-md border border-neutral-200 px-3 py-2 dark:border-neutral-800">
+              <Label htmlFor="rep-showcover" className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                Exibir título e tabela antes do texto
+              </Label>
+              <Switch id="rep-showcover" checked={rep.showCover} onCheckedChange={(v) => setRep({ showCover: v })} />
             </div>
-            <Field label="Alunos (um por linha)" hint="Exibidos na linha “Aluno(s)” da capa, separados por ponto e vírgula.">
-              <Textarea
-                className="min-h-20"
-                value={settings.authors.join("\n")}
-                onChange={(e) => set("authors", e.target.value.split("\n").filter((x) => x.trim() !== ""))}
-              />
-            </Field>
+            <p className="text-[11px] text-neutral-400 dark:text-neutral-500">
+              Ligado (padrão): o título “Relatório Técnico…” e a tabela de identificação ficam na 1ª página e o texto começa logo depois — tudo junto, sem quebra de página.
+            </p>
+            {rep.showCover && (
+              <>
+                <Field label="Título do relatório">
+                  <Input value={rep.activityLabel} onChange={(e) => setRep({ activityLabel: e.target.value })} />
+                </Field>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Nº da atividade (opcional)">
+                    <Input value={rep.activityNumber} onChange={(e) => setRep({ activityNumber: e.target.value })} placeholder="5" />
+                  </Field>
+                  <Field label="Data da atividade">
+                    <Input value={rep.dataAtividade} onChange={(e) => setRep({ dataAtividade: e.target.value })} placeholder="14/09/2026" />
+                  </Field>
+                  <Field label="Disciplina">
+                    <Input value={rep.disciplina} onChange={(e) => setRep({ disciplina: e.target.value })} />
+                  </Field>
+                  <Field label="Turma">
+                    <Input value={rep.turma} onChange={(e) => setRep({ turma: e.target.value })} />
+                  </Field>
+                  <Field label="Professor">
+                    <Input value={rep.professor} onChange={(e) => setRep({ professor: e.target.value })} />
+                  </Field>
+                  <Field label="Período">
+                    <Input value={rep.periodo} onChange={(e) => setRep({ periodo: e.target.value })} />
+                  </Field>
+                </div>
+                <Field label="Alunos (um por linha)" hint="Exibidos na linha “Aluno(s)” da tabela, separados por ponto e vírgula.">
+                  <Textarea
+                    className="min-h-20"
+                    value={settings.authors.join("\n")}
+                    onChange={(e) => set("authors", e.target.value.split("\n").filter((x) => x.trim() !== ""))}
+                  />
+                </Field>
+              </>
+            )}
           </Section>
         )}
 
@@ -232,11 +256,12 @@ export function SettingsPanel({ settings, onChange }: Props) {
               (
                 isReport
                   ? ([
-                      ["capa", "Capa em tabela (padrão do curso)"],
+                      ["lineBreaks", "Enter cria quebra de linha (pular linha)"],
                       ["numberSections", "Numerar seções (1., 1.1, 1.1.1 …)"],
                       ["numberEquations", "Numerar equações"],
                     ] as const)
                   : ([
+                      ["lineBreaks", "Enter cria quebra de linha (pular linha)"],
                       ["capa", "Capa (NBR 14724)"],
                       ["folhaRosto", "Folha de rosto"],
                       ["aprovacao", "Folha de aprovação"],

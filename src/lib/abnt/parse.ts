@@ -5,7 +5,7 @@
  * tabelas/figuras com legenda e fonte (NBR 14724/IBGE),
  * citações longas, equações e código.
  * ------------------------------------------------------------------ */
-import { marked, type Token, type Tokens } from "marked";
+import { Marked, type Token, type Tokens } from "marked";
 import type {
   AbntDocument,
   AbntSettings,
@@ -15,6 +15,7 @@ import type {
   HeadingBlock,
   InlineRun,
   ListItem,
+  PageBreakBlock,
   SpecialHeading,
   TableBlock,
 } from "./types";
@@ -227,6 +228,11 @@ interface WalkCtx {
   inCode: boolean;
 }
 
+/** quando OFF (toggle lineBreaks), quebras de linha simples viram espaço — parágrafo contínuo */
+let softBreakAsSpace = false;
+
+const normalizeSoftBreaks = (s: string): string => (softBreakAsSpace ? s.replace(/[ \t]*\r?\n[ \t]*/g, " ") : s);
+
 function inlineRuns(tokens: Token[] | undefined, base: Partial<InlineRun> = {}, ctx: WalkCtx = { inCode: false }): InlineRun[] {
   if (!tokens) return [];
   const runs: InlineRun[] = [];
@@ -250,7 +256,7 @@ function inlineRuns(tokens: Token[] | undefined, base: Partial<InlineRun> = {}, 
         runs.push({ text: "\n" });
         break;
       case "escape":
-        runs.push({ ...base, text: convertCitations((t as Tokens.Escape).text) });
+        runs.push({ ...base, text: normalizeSoftBreaks(convertCitations((t as Tokens.Escape).text)) });
         break;
       case "link": {
         const lk = t as Tokens.Link;
@@ -276,23 +282,23 @@ function inlineRuns(tokens: Token[] | undefined, base: Partial<InlineRun> = {}, 
         if (tx.tokens && tx.tokens.length) {
           runs.push(...inlineRuns(tx.tokens, base, ctx));
         } else {
-          runs.push({ ...base, text: convertCitations(tx.text) });
+          runs.push({ ...base, text: normalizeSoftBreaks(convertCitations(tx.text)) });
         }
         break;
       }
       default: {
         const raw = (t as { raw?: string }).raw ?? (t as { text?: string }).text ?? "";
-        if (raw) runs.push({ ...base, text: convertCitations(raw) });
+        if (raw) runs.push({ ...base, text: normalizeSoftBreaks(convertCitations(raw)) });
         break;
       }
     }
   }
-  // remove corridas vazias contíguas e colapsa \n
+  // remove corridas vazias contíguas e colapsa estilos iguais; corrida "\n" (quebra) é barreira
   const cleaned: InlineRun[] = [];
   for (const r of runs) {
     if (!r.text) continue;
     const prev = cleaned[cleaned.length - 1];
-    if (prev && sameStyle(prev, r)) prev.text += r.text;
+    if (prev && prev.text !== "\n" && r.text !== "\n" && sameStyle(prev, r)) prev.text += r.text;
     else cleaned.push({ ...r });
   }
   return cleaned;
@@ -400,6 +406,67 @@ function alignFromCell(cell: Tokens.TableCell): Align {
   return "left";
 }
 
+/* ---------------- containers de alinhamento ::: ---------------- */
+
+const ALIGN_MAP: Record<string, Align> = {
+  center: "center",
+  centro: "center",
+  left: "left",
+  esquerda: "left",
+  right: "right",
+  direita: "right",
+  justify: "justify",
+  justificado: "justify",
+};
+
+type AlignContainerToken = Token & {
+  type: "alignContainer";
+  align: Align;
+  tokens: Token[];
+};
+
+/** extensão marked: blocos "::: center ... :::" aplicam alinhamento ao conteúdo (suporta aninhamento por profundidade) */
+const containerExtension = {
+  name: "alignContainer",
+  level: "block" as const,
+  start(src: string) {
+    return src.match(/:::/)?.index;
+  },
+  tokenizer(
+    this: { lexer: { blockTokens: (src: string, tokens?: Token[]) => Token[] } },
+    src: string
+  ): Token | undefined {
+    const opener = /^::: *(center|centro|left|esquerda|right|direita|justify|justificado)[ \t]*\r?\n/.exec(src);
+    if (!opener) return undefined;
+    const align = ALIGN_MAP[opener[1].toLowerCase()];
+    const rest = src.slice(opener[0].length);
+    const lines = rest.split(/\r?\n/);
+    let depth = 1;
+    let endLine = -1;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (/^::: *(center|centro|left|esquerda|right|direita|justify|justificado)(\s|$)/.test(line)) depth++;
+      else if (/^:::[ \t]*$/.test(line)) {
+        depth--;
+        if (depth === 0) {
+          endLine = i;
+          break;
+        }
+      }
+    }
+    if (endLine === -1) return undefined; // sem fechamento — renderiza como texto comum
+    const inner = lines.slice(0, endLine).join("\n");
+    const consumedRest = endLine + lines.slice(0, endLine + 1).reduce((acc, l) => acc + l.length, 0);
+    const raw = src.slice(0, opener[0].length + consumedRest);
+    const token = { type: "alignContainer", raw, align, tokens: [] } as unknown as AlignContainerToken;
+    this.lexer.blockTokens(inner, token.tokens);
+    return token as unknown as Token;
+  },
+};
+
+/** token HTML "<!-- pagebreak -->" (ou "quebra de página") vira quebra de página */
+const PAGEBREAK_RE = /<!--\s*(pagebreak|quebra\s*de\s*p[áa]gina)\s*-->/i;
+
 export function parseMarkdown(md: string, settings: AbntSettings): AbntDocument {
   const { front, body } = extractFrontMatter(md);
   const doc: AbntDocument = {
@@ -412,8 +479,17 @@ export function parseMarkdown(md: string, settings: AbntSettings): AbntDocument 
     tables: [],
   };
 
-  const tokens = marked.lexer(body) as Token[];
+  softBreakAsSpace = settings.toggles.lineBreaks === false;
+  const lexer = new Marked({
+    breaks: settings.toggles.lineBreaks !== false,
+    gfm: true,
+    extensions: [containerExtension as never],
+  });
+  const tokens = [...lexer.lexer(body)] as Token[];
   const blocks: Block[] = [];
+
+  const alignStack: Align[] = [];
+  const curAlign = (): Align | undefined => alignStack[alignStack.length - 1];
 
   let resumoParts: string[] = [];
   let resumoKeywords: string[] | undefined;
@@ -457,6 +533,7 @@ export function parseMarkdown(md: string, settings: AbntSettings): AbntDocument 
       }
       specialMode = null;
       const hb: HeadingBlock = { type: "heading", level: Math.min(h.depth, 5) as HeadingBlock["level"], runs };
+      if (curAlign() === "center") hb.centered = true; // ::: center aplicado ao título
       blocks.push(hb);
       continue;
     }
@@ -474,6 +551,7 @@ export function parseMarkdown(md: string, settings: AbntSettings): AbntDocument 
           (specialMode === "resumo" ? resumoParts : abstractParts).push(text);
         }
       } else if (t.type === "space") continue;
+      else if (t.type === "alignStart" || t.type === "alignEnd") continue;
       else {
         // fim da seção especial por bloco não-parágrafo
         specialMode = null;
@@ -540,7 +618,30 @@ export function parseMarkdown(md: string, settings: AbntSettings): AbntDocument 
           blocks.push({ type: "equation", runs: mathToRuns(eqOnly[1]) });
           break;
         }
-        blocks.push({ type: "paragraph", runs: processInlineMath(runs), align: "justify" });
+        blocks.push({ type: "paragraph", runs: processInlineMath(runs), align: curAlign() });
+        break;
+      }
+      case "alignContainer": {
+        // desmonta o container: marcador de início + tokens internos + marcador de fim
+        const c = t as unknown as AlignContainerToken;
+        const startTok = { type: "alignStart", align: c.align, raw: "" } as unknown as Token;
+        const endTok = { type: "alignEnd", raw: "" } as unknown as Token;
+        tokens.splice(ti, 1, startTok, ...(c.tokens ?? []), endTok);
+        ti--; // reprocessa a partir do marcador
+        break;
+      }
+      case "alignStart":
+        alignStack.push((t as unknown as { align: Align }).align);
+        break;
+      case "alignEnd":
+        if (alignStack.length) alignStack.pop();
+        break;
+      case "html": {
+        const raw = (t as Tokens.HTML).raw ?? "";
+        if (PAGEBREAK_RE.test(raw)) {
+          const pb: PageBreakBlock = { type: "pagebreak" };
+          blocks.push(pb);
+        }
         break;
       }
       case "blockquote": {
@@ -625,8 +726,8 @@ export function parseMarkdown(md: string, settings: AbntSettings): AbntDocument 
       } else if (plain === "referencias") {
         b.special = "referencias";
         b.centered = true;
-      } else {
-        b.centered = false;
+      } else if (b.centered !== true) {
+        b.centered = false; // preserva centralização vinda de container ::: center
       }
     }
     if (i === refIdx) continue;

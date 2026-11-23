@@ -198,8 +198,9 @@ export async function buildPdfBuffer(doc: AbntDocument): Promise<Buffer> {
       const canJustify = o.align === "justify" && !last && !line.hardBreak && line.spaces > 0;
       let startX = o.x + (idx === 0 ? o.firstIndent : 0);
       const free = o.width - (idx === 0 ? o.firstIndent : 0) - line.width;
-      if (o.align === "center" || (o.align === "justify" && last && !o.justifyLast)) startX = o.x + free / 2;
+      if (o.align === "center") startX = o.x + free / 2;
       else if (o.align === "right") startX = o.x + free;
+      // última linha de parágrafo justificado fica alinhada à esquerda (padrão ABNT)
       const perSpace = canJustify ? Math.max(0, free) / Math.max(line.spaces, 1) : 0;
       // garante página
       const lineH = o.leading;
@@ -521,8 +522,17 @@ export async function buildPdfBuffer(doc: AbntDocument): Promise<Buffer> {
         if (b.special) continue;
         renderHeading(b);
         break;
-      case "paragraph":
-        paragraph(b.runs, { align: "justify", firstIndent: 1.25 * CM });
+      case "paragraph": {
+        const a = b.align;
+        paragraph(b.runs, {
+          align: a ?? "justify",
+          firstIndent: a === "center" || a === "right" ? 0 : 1.25 * CM,
+        });
+        break;
+      }
+      case "pagebreak":
+        pdf.addPage();
+        y = MT;
         break;
       case "blockquote":
         paragraph(b.runs, { align: "justify", size: 10, left: 4 * CM, lineFactor: 1, gapAfter: 8 });
@@ -606,7 +616,7 @@ export async function buildPdfBuffer(doc: AbntDocument): Promise<Buffer> {
         if (img) {
           const { width, height } = fitImage(img, maxW, maxH);
           ensureSpace(height + 30);
-          const ix = ML + (CW - width) / 2;
+          const ix = b.align === "left" ? ML : b.align === "right" ? ML + CW - width : ML + (CW - width) / 2;
           try {
             pdf.image(img.buf, ix, y, { width, height });
           } catch {

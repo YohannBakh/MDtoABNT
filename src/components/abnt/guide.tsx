@@ -95,6 +95,37 @@ em que $D(t)$ é o desempenho na semana $t$.`,
 1. procedimento um
 2. procedimento dois`,
   },
+  {
+    title: "Quebra de linha (pular linha)",
+    body: "Com o ajuste “Enter cria quebra de linha” ligado (padrão), pressionar Enter dentro de um parágrafo quebra a linha no documento — útil para linhas de cálculo. Duas linhas em branco criam um novo parágrafo com recuo.",
+    code: `i = 12 / 3200 = 3,75 mA
+VR1 = 1000 × 3,75 mA = 3,75 V
+VR2 = 12 − 3,75 = 8,25 V`,
+  },
+  {
+    title: "Alinhamento e posicionamento",
+    body: "Envolva o conteúdo em um bloco ::: para mudar o posicionamento: center/centro, left/esquerda, right/direita ou justify/justificado. Funciona com parágrafos, títulos e imagens (aparece assim também na prévia).",
+    code: `::: center
+Este parágrafo fica centralizado.
+:::
+
+::: right
+Texto alinhado à direita.
+:::
+
+::: center
+![Figura 1 – Circuito montado](/circuito.png)
+:::`,
+  },
+  {
+    title: "Quebra de página",
+    body: "Escreva <!-- pagebreak --> em uma linha para iniciar uma nova página no documento gerado (aceita também “quebra de página” dentro do comentário).",
+    code: `... fim da seção anterior.
+
+<!-- pagebreak -->
+
+# Nova seção em página própria`,
+  },
 ];
 
 const normas = [
