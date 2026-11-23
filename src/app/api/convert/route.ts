@@ -1,8 +1,10 @@
-/* API de conversão MD → ABNT (DOCX / PDF) */
+/* API de conversão MD → ABNT / Relatório Técnico (DOCX / PDF) */
 import { parseMarkdown } from "@/lib/abnt/parse";
 import { DEFAULT_SETTINGS, type AbntSettings } from "@/lib/abnt/types";
 import { buildDocxBlob } from "@/lib/abnt/docx";
+import { buildReportDocxBlob } from "@/lib/abnt/docx-report";
 import { buildPdfBuffer } from "@/lib/abnt/pdf";
+import { buildReportPdfBuffer } from "@/lib/abnt/pdf-report";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -32,6 +34,7 @@ export async function POST(req: Request) {
       ...DEFAULT_SETTINGS,
       ...(body.settings ?? {}),
       toggles: { ...DEFAULT_SETTINGS.toggles, ...(body.settings?.toggles ?? {}) },
+      report: { ...DEFAULT_SETTINGS.report, ...(body.settings?.report ?? {}) },
     };
     const format = body.format === "pdf" ? "pdf" : "docx";
 
@@ -43,7 +46,7 @@ export async function POST(req: Request) {
     const base = sanitizeFileName(doc.settings.fileName);
 
     if (format === "pdf") {
-      const buf = await buildPdfBuffer(doc);
+      const buf = settings.style === "relatorio" ? await buildReportPdfBuffer(doc) : await buildPdfBuffer(doc);
       return new Response(new Uint8Array(buf), {
         headers: {
           "Content-Type": "application/pdf",
@@ -53,7 +56,7 @@ export async function POST(req: Request) {
       });
     }
 
-    const buf = await buildDocxBlob(doc);
+    const buf = settings.style === "relatorio" ? await buildReportDocxBlob(doc) : await buildDocxBlob(doc);
     return new Response(new Uint8Array(buf), {
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",

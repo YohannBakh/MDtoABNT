@@ -54,3 +54,6 @@ server.log
 /skills/
 # test screenshots
 scripts/test-*.png
+
+# uploads do usuario (nao versionar)
+/upload/

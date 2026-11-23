@@ -70,7 +70,7 @@ function tr(r: InlineRun, size: number, font: string, mono: string, boldOverride
   return new TextRun(opts);
 }
 
-function runsOf(runs: InlineRun[], size: number, font: string, mono: string, boldOverride?: boolean): TextRun[] {
+export function runsOf(runs: InlineRun[], size: number, font: string, mono: string, boldOverride?: boolean): TextRun[] {
   return runs.map((r) => tr(r, size, font, mono, boldOverride));
 }
 

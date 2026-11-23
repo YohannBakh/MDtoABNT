@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useMemo, useState } from "react";
 import { parseMarkdown } from "@/lib/abnt/parse";
 import { DEFAULT_SETTINGS, type AbntSettings } from "@/lib/abnt/types";
-import { SAMPLE_MARKDOWN } from "@/lib/abnt/sample";
+import { SAMPLE_MARKDOWN, SAMPLE_REPORT_MARKDOWN } from "@/lib/abnt/sample";
 import { AbntPreview } from "@/components/abnt/preview";
 import { SettingsPanel } from "@/components/abnt/settings-panel";
 import { SyntaxGuide } from "@/components/abnt/guide";
@@ -21,7 +21,7 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Eraser, FileDown, FileText, Loader2, NotebookPen, ScrollText } from "lucide-react";
+import { Eraser, FileDown, FileText, FlaskConical, Loader2, NotebookPen, ScrollText } from "lucide-react";
 
 type Format = "docx" | "pdf";
 
@@ -37,6 +37,17 @@ export default function Home() {
   const words = useMemo(() => markdown.trim().split(/\s+/).filter(Boolean).length, [markdown]);
 
   const patchSettings = (patch: Partial<AbntSettings>) => setSettings((s) => ({ ...s, ...patch }));
+
+  /** carrega o template de relatório e alterna para o estilo Relatório Técnico */
+  function loadReportTemplate() {
+    setMarkdown(SAMPLE_REPORT_MARKDOWN);
+    setSettings((s) => ({
+      ...s,
+      style: "relatorio",
+      report: { ...DEFAULT_SETTINGS.report, ...s.report },
+      fileName: s.fileName === "artigo-abnt" || s.fileName === "" ? "relatorio-tecnico" : s.fileName,
+    }));
+  }
 
   async function generate(format: Format) {
     if (!markdown.trim()) {
@@ -165,6 +176,10 @@ export default function Home() {
             <Button variant="ghost" size="sm" onClick={() => setMarkdown(SAMPLE_MARKDOWN)}>
               <FileText className="mr-1.5 h-4 w-4" />
               Carregar exemplo
+            </Button>
+            <Button variant="ghost" size="sm" onClick={loadReportTemplate} title="Carrega o esqueleto de relatório técnico (Experimento)">
+              <FlaskConical className="mr-1.5 h-4 w-4" />
+              Template de relatório
             </Button>
             <Button
               size="sm"

@@ -111,6 +111,26 @@ export type Block =
 
 /* ------------------------- Configurações ------------------------- */
 
+/** Estilo do documento: artigo ABNT ou relatório técnico de experimento */
+export type DocStyle = "abnt" | "relatorio";
+
+/** Campos da capa do relatório técnico (tabela institucional) */
+export interface ReportCover {
+  /** ex.: "CURSO SUPERIOR EM ENGENHARIA DE CONTROLE E AUTOMAÇÃO" */
+  course: string;
+  /** ex.: "RELATÓRIO TÉCNICO – ATIVIDADE EXPERIMENTAL" */
+  activityLabel: string;
+  /** número da atividade (opcional, exibido após o rótulo acima) */
+  activityNumber: string;
+  disciplina: string;
+  turma: string;
+  professor: string;
+  /** ex.: "2026 / 2º Semestre" */
+  periodo: string;
+  /** ex.: "14/09/2026" */
+  dataAtividade: string;
+}
+
 export interface AbntToggles {
   capa: boolean;
   folhaRosto: boolean;
@@ -126,6 +146,8 @@ export interface AbntToggles {
 }
 
 export interface AbntSettings {
+  /** estilo geral do documento */
+  style: DocStyle;
   font: "times" | "arial";
   title: string;
   subtitle: string;
@@ -144,6 +166,8 @@ export interface AbntSettings {
   keywordsEn: string[];
   sourceNote: string; // "Fonte: elaborado pelo autor (2025)."
   fileName: string;
+  /** campos da capa no estilo Relatório Técnico */
+  report: ReportCover;
   toggles: AbntToggles;
 }
 
@@ -161,6 +185,7 @@ export interface AbntDocument {
 }
 
 export const DEFAULT_SETTINGS: AbntSettings = {
+  style: "abnt",
   font: "times",
   title: "Título do trabalho",
   subtitle: "",
@@ -179,6 +204,17 @@ export const DEFAULT_SETTINGS: AbntSettings = {
   keywordsEn: [],
   sourceNote: "Fonte: elaborado pelo autor.",
   fileName: "artigo-abnt",
+  /** campos da capa do estilo Relatório Técnico */
+  report: {
+    course: "CURSO SUPERIOR EM ENGENHARIA DE CONTROLE E AUTOMAÇÃO",
+    activityLabel: "RELATÓRIO TÉCNICO – ATIVIDADE EXPERIMENTAL",
+    activityNumber: "",
+    disciplina: "",
+    turma: "ECA 2025",
+    professor: "",
+    periodo: "2026 / 2º Semestre",
+    dataAtividade: "",
+  },
   toggles: {
     capa: true,
     folhaRosto: true,
@@ -206,6 +242,20 @@ export const ABNT = {
   bodySize: 12,
   /** citações longas e notas */
   smallSize: 10,
+} as const;
+
+/** Medidas do estilo Relatório Técnico (medidas dos relatórios do curso) */
+export const REPORT = {
+  margin: { top: 2.5, left: 3, bottom: 2.5, right: 3 },
+  /** espaçamento 1,15 (docx: 240 × 1,15) */
+  lineDocx: 276,
+  lineFactor: 1.15,
+  /** recuo de primeira linha */
+  firstLineIndent: 1.27,
+  /** recuo do número da seção (lista: esquerda 1,27, deslocado 0,64) */
+  sectionIndent: 1.27,
+  sectionHanging: 0.64,
+  bodySize: 12,
 } as const;
 
 /** Fontes por escolha do usuário */

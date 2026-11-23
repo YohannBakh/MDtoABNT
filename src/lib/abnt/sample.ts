@@ -106,3 +106,74 @@ export const SAMPLE_SETTINGS_OVERRIDES = {
   title: "Anotações digitais e aprendizagem ativa",
   subtitle: "Um estudo experimental com estudantes universitários",
 };
+
+/* Template de Relatório Técnico (padrão dos relatórios "Experimento N" do curso) */
+export const SAMPLE_REPORT_MARKDOWN = `---
+fileName: relatorio-tecnico
+activityNumber: ""
+disciplina: ""
+dataAtividade: ""
+---
+
+# Descrição da atividade
+
+O experimento consiste na aplicação dos conceitos estudados em aula, de forma que, após serem obtidos os resultados experimentais, possam estes ser comparados com os valores teóricos calculados. O objetivo é encontrar as tensões e correntes em cada elemento do circuito fornecido, comparando os valores medidos com os calculados.
+
+# Análise Teórica
+
+Para a realização da análise, alguns conceitos fundamentais devem ser compreendidos:
+
+**Nó:** o nó é o ponto de conexão entre três ou mais ramos do circuito, no qual a corrente pode se dividir entre os ramos ou se somar.
+
+**Ramo:** o ramo é a parte do circuito que fica entre dois nós; todos os bipolos ligados em série dentro de um mesmo ramo são percorridos pela mesma corrente.
+
+**Malha:** a malha é um caminho fechado formado por ramos, partindo de um ponto e retornando a ele sem passar duas vezes pelo mesmo nó.
+
+A relação entre as grandezas do circuito é dada pela Lei de Ohm:
+
+$$V = R \\cdot I$$
+
+# Metodologia do experimento
+
+Para a montagem dos circuitos foram utilizados os seguintes componentes:
+
+1. 2x Resistor de 100 Ω;
+2. 1x Resistor de 1 kΩ;
+3. 5x Resistor de 1,2 kΩ;
+4. 1x Protoboard;
+5. Fonte CC ajustável;
+6. Multímetro;
+7. Jumpers.
+
+Com os componentes em mãos, os circuitos foram montados na protoboard conforme o roteiro, e as medidas foram registradas para cada configuração de tensão da fonte.
+
+# Resultados Experimentais Obtidos
+
+Para o primeiro circuito, o objetivo é encontrar a corrente total fornecida pela fonte. Associando os resistores para encontrar a resistência equivalente:
+
+1000 + 2200 = 3200
+
+i = 12 / 3200 = 3,75 mA
+
+Com a corrente total conhecida, as tensões em cada elemento podem ser calculadas:
+
+VR1 = 1000 × 3,75 mA = 3,75 V
+
+VR2 = 12 − 3,75 = 8,25 V
+
+Os valores medidos no circuito montado são apresentados a seguir:
+
+Tabela 1 – Tensões e correntes medidas e calculadas
+
+| Grandeza | Valor calculado | Valor medido | Desvio |
+| :--- | :---: | :---: | :---: |
+| VR1 | 3,75 V | 3,72 V | 0,8% |
+| VR2 | 8,25 V | 8,19 V | 0,7% |
+| i | 3,75 mA | 3,71 mA | 1,1% |
+
+Fonte: dados da atividade experimental.
+
+# Conclusão
+
+A partir dos resultados obtidos, é possível concluir que os valores medidos no experimento apresentaram boa concordância com os valores teóricos calculados, com desvios inferiores a 1,5%. As pequenas diferenças observadas devem-se principalmente à tolerância dos resistores utilizados e à precisão dos instrumentos de medição, confirmando a validade dos conceitos aplicados.
+`;
