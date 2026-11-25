@@ -4,6 +4,7 @@
 
 import type { AbntDocument, Block, InlineRun } from "@/lib/abnt/types";
 import { REPORT, fontFamilies, MONO_FONTS } from "@/lib/abnt/types";
+import { LOGO_IF_BASE64 } from "@/lib/abnt/logos";
 import { Fragment, type CSSProperties, type ReactNode } from "react";
 
 function Runs({ runs }: { runs: InlineRun[] }): ReactNode {
@@ -91,16 +92,18 @@ export function AbntPreview({ doc }: { doc: AbntDocument }) {
   const fontCss = fontFamilies(s.font).css;
   const monoCss = MONO_FONTS.css;
   const isReport = s.style === "relatorio";
+  const isCnpq = s.style === "cnpq";
+  const isAbnt = s.style === "abnt";
 
   const pageStyle: CSSProperties = {
     width: "21cm",
     minHeight: "29.7cm",
-    padding: isReport ? "2.9cm 3cm 2.5cm 3cm" : "3cm 2cm 2cm 3cm",
+    padding: isCnpq ? "4.3cm 2cm 2cm 2cm" : isReport ? "2.9cm 3cm 2.5cm 3cm" : "3cm 2cm 2cm 3cm",
     background: "#ffffff",
     color: "#000000",
     fontFamily: fontCss,
     fontSize: "12pt",
-    lineHeight: isReport ? 1.15 : 1.5,
+    lineHeight: isCnpq || isReport ? 1.15 : 1.5,
     margin: "0 auto 24px",
     boxShadow: "0 2px 16px rgba(0,0,0,0.12)",
     position: "relative",
@@ -115,31 +118,55 @@ export function AbntPreview({ doc }: { doc: AbntDocument }) {
     </div>
   ) : null;
 
-  const bodyPara: CSSProperties = isReport
-    ? { textAlign: "justify", textIndent: "1.27cm", margin: 0, lineHeight: 1.15 }
-    : { textAlign: "justify", textIndent: "1.25cm", margin: 0 };
+  /** cabeçalho CNPq: logo IF + bloco ministerial (aparece em todas as páginas da prévia) */
+  const cnpqHeader = isCnpq ? (
+    <div style={{ display: "flex", alignItems: "center", gap: "0.8cm", marginBottom: "10pt" }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={LOGO_IF_BASE64} alt="Logo IF Catarinense" style={{ width: "4.9cm", height: "1.63cm", objectFit: "contain" }} />
+      <div style={{ flex: 1, textAlign: "center", fontWeight: 700, fontSize: "8pt", lineHeight: 1.35 }}>
+        <div>{s.cnpq.ministry1}</div>
+        <div>{s.cnpq.ministry2}</div>
+        <div>{s.institution}</div>
+      </div>
+    </div>
+  ) : null;
+
+  const bodyPara: CSSProperties = isCnpq
+    ? { textAlign: "justify", textIndent: "1.25cm", margin: 0, lineHeight: 1.15 }
+    : isReport
+      ? { textAlign: "justify", textIndent: "1.27cm", margin: 0, lineHeight: 1.15 }
+      : { textAlign: "justify", textIndent: "1.25cm", margin: 0 };
   const centered = (extra: CSSProperties = {}): CSSProperties => ({ textAlign: "center", ...extra });
 
   const headingStyle = (level: number, hasNumber: boolean): CSSProperties =>
-    isReport
+    isCnpq
       ? {
           fontWeight: 700,
           fontSize: "12pt",
           textAlign: "left",
-          margin: "10pt 0 2pt",
+          margin: "12pt 0 4pt",
           lineHeight: 1.15,
-          marginLeft: `${0.64 + (level - 1) * 0.5}cm`,
-          textIndent: "-0.64cm",
-        }
-      : {
-          fontWeight: level === 1 || level === 3 ? 700 : 400,
           textTransform: level <= 2 ? "uppercase" : "none",
-          fontStyle: level >= 4 ? "italic" : "normal",
-          fontSize: "12pt",
-          textAlign: hasNumber ? "left" : "center",
-          margin: level === 1 ? "18pt 0 12pt" : "12pt 0 8pt",
-          lineHeight: 1.15,
-        };
+        }
+      : isReport
+        ? {
+            fontWeight: 700,
+            fontSize: "12pt",
+            textAlign: "left",
+            margin: "10pt 0 2pt",
+            lineHeight: 1.15,
+            marginLeft: `${0.64 + (level - 1) * 0.5}cm`,
+            textIndent: "-0.64cm",
+          }
+        : {
+            fontWeight: level === 1 || level === 3 ? 700 : 400,
+            textTransform: level <= 2 ? "uppercase" : "none",
+            fontStyle: level >= 4 ? "italic" : "normal",
+            fontSize: "12pt",
+            textAlign: hasNumber ? "left" : "center",
+            margin: level === 1 ? "18pt 0 12pt" : "12pt 0 8pt",
+            lineHeight: 1.15,
+          };
 
   /** linha de cálculo: curta, com "=" e dígitos — sem recuo (padrão dos relatórios) */
   const isCalc = (runs: InlineRun[]): boolean => {
@@ -152,7 +179,67 @@ export function AbntPreview({ doc }: { doc: AbntDocument }) {
   /* ---------- páginas pré-textuais ---------- */
   const pages: ReactNode[] = [];
 
-  if (!isReport && t.capa) {
+  if (isCnpq && s.cnpq.showCover) {
+    const c = s.cnpq;
+    const edital = c.edital.trim() ? ` em cumprimento à exigência do Edital ${c.edital.trim()}` : "";
+    pages.push(
+      <div style={pageStyle} key="cnpq-capa">
+        {cnpqHeader}
+        <div style={{ height: "1.4cm" }} />
+        <div style={centered({ fontWeight: 700, textTransform: "uppercase", lineHeight: 1.15 })}>{s.institution}</div>
+        <div style={centered({ fontWeight: 700, textTransform: "uppercase", lineHeight: 1.15 })}>{c.campus}</div>
+        {s.department.trim() ? <div style={centered({ fontWeight: 700, textTransform: "uppercase", lineHeight: 1.15 })}>{s.department}</div> : null}
+        <div style={{ height: "3.4cm" }} />
+        <div style={centered({ fontWeight: 700, textTransform: "uppercase", lineHeight: 1.15 })}>{s.title}</div>
+        {s.subtitle.trim() ? <div style={centered({ lineHeight: 1.15 })}>{s.subtitle}</div> : null}
+        <div style={{ height: "2cm" }} />
+        {s.authors.filter((a) => a.trim()).map((a, i) => (
+          <div key={i} style={centered({ fontWeight: 700, lineHeight: 1.15 })}>
+            {a}
+          </div>
+        ))}
+        <div style={{ height: "2.4cm" }} />
+        <div style={{ marginLeft: "9.3cm", textAlign: "justify", lineHeight: 1.15 }}>
+          {`${c.reportKind} apresentado ao ${s.institution}${edital}.`}
+        </div>
+        <div style={{ height: "0.5cm" }} />
+        {s.advisor.trim() ? (
+          <div style={{ marginLeft: "9.3cm", textAlign: "left", lineHeight: 1.15 }}>{`${s.advisorRole}: ${s.advisor.trim()}.`}</div>
+        ) : null}
+        {s.coadvisor.trim() ? (
+          <div style={{ marginLeft: "9.3cm", textAlign: "left", lineHeight: 1.15 }}>{`Coorientador: ${s.coadvisor.trim()}.`}</div>
+        ) : null}
+        <div style={{ height: "4.4cm" }} />
+        <div style={centered({ fontWeight: 700, lineHeight: 1.15 })}>{s.city}</div>
+        {c.monthYear.trim() ? <div style={centered({ fontWeight: 700, lineHeight: 1.15 })}>{c.monthYear}</div> : null}
+      </div>
+    );
+  }
+
+  if (isCnpq && doc.resumo) {
+    const kws = doc.resumo.keywords ?? s.keywords;
+    pages.push(
+      <div style={pageStyle} key="cnpq-resumo">
+        {cnpqHeader}
+        <div style={{ fontWeight: 700, marginBottom: "10pt" }}>RESUMO</div>
+        {doc.resumo.text
+          .split(/\n\n+/)
+          .filter((p) => p.trim())
+          .map((p, i) => (
+            <p key={i} style={{ textAlign: "justify", textIndent: "1.25cm", lineHeight: 1.15, margin: 0 }}>
+              {p.trim()}
+            </p>
+          ))}
+        {kws.length ? (
+          <p style={{ lineHeight: 1.15, marginTop: "10pt", textAlign: "justify" }}>
+            <b>PALAVRAS-CHAVE:</b> {kws.map((k) => k.replace(/\.$/, "")).join(", ")}.
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (isAbnt && t.capa) {
     pages.push(
       <div style={pageStyle} key="capa">
         <div style={centered({ fontWeight: 700, textTransform: "uppercase" })}>{s.institution}</div>
@@ -173,7 +260,7 @@ export function AbntPreview({ doc }: { doc: AbntDocument }) {
     );
   }
 
-  if (!isReport && t.folhaRosto) {
+  if (isAbnt && t.folhaRosto) {
     pages.push(
       <div style={pageStyle} key="rosto">
         <div style={centered({ fontWeight: 700, textTransform: "uppercase" })}>{s.institution}</div>
@@ -201,7 +288,7 @@ export function AbntPreview({ doc }: { doc: AbntDocument }) {
     );
   }
 
-  if (!isReport && t.aprovacao) {
+  if (isAbnt && t.aprovacao) {
     pages.push(
       <div style={pageStyle} key="aprovacao">
         {s.authors.map((a, i) => (
@@ -227,7 +314,7 @@ export function AbntPreview({ doc }: { doc: AbntDocument }) {
 
   const resumo = doc.resumo ?? (t.resumo ? { text: "", keywords: s.keywords } : null);
   const hasResumo = !!(doc.resumo || (t.resumo && s.keywords.length));
-  if (!isReport && hasResumo && resumo) {
+  if (isAbnt && hasResumo && resumo) {
     const kws = resumo.keywords ?? s.keywords;
     pages.push(
       <div style={pageStyle} key="resumo">
@@ -249,7 +336,7 @@ export function AbntPreview({ doc }: { doc: AbntDocument }) {
     );
   }
 
-  if (!isReport && doc.abstractEn) {
+  if (isAbnt && doc.abstractEn) {
     pages.push(
       <div style={pageStyle} key="abstract">
         <div style={centered({ fontWeight: 700, marginBottom: 18 })}>ABSTRACT</div>
@@ -270,7 +357,7 @@ export function AbntPreview({ doc }: { doc: AbntDocument }) {
     );
   }
 
-  if (!isReport && t.listaFiguras && doc.figures.length) {
+  if (isAbnt && t.listaFiguras && doc.figures.length) {
     pages.push(
       <div style={pageStyle} key="listafig">
         <div style={centered({ fontWeight: 700, marginBottom: 24 })}>LISTA DE FIGURAS</div>
@@ -285,7 +372,7 @@ export function AbntPreview({ doc }: { doc: AbntDocument }) {
     );
   }
 
-  if (!isReport && t.listaTabelas && doc.tables.length) {
+  if (isAbnt && t.listaTabelas && doc.tables.length) {
     pages.push(
       <div style={pageStyle} key="listatab">
         <div style={centered({ fontWeight: 700, marginBottom: 24 })}>LISTA DE TABELAS</div>
@@ -300,7 +387,7 @@ export function AbntPreview({ doc }: { doc: AbntDocument }) {
     );
   }
 
-  if (!isReport && t.sumario) {
+  if (isAbnt && t.sumario) {
     const headings = doc.body.filter((b): b is Extract<Block, { type: "heading" }> => b.type === "heading" && !b.special);
     pages.push(
       <div style={pageStyle} key="sumario">
@@ -324,7 +411,7 @@ export function AbntPreview({ doc }: { doc: AbntDocument }) {
       case "heading": {
         if (b.special) return null;
         const hasNumber = !!b.number;
-        const numLabel = isReport && b.number && b.level === 1 ? `${b.number}. ` : b.number ? `${b.number} ` : "";
+        const numLabel = (isReport || isCnpq) && b.number && b.level === 1 ? `${b.number}. ` : b.number ? `${b.number} ` : "";
         const hs = headingStyle(b.level, hasNumber);
         const hStyle: CSSProperties = b.centered
           ? { ...hs, textAlign: "center", marginLeft: 0, textIndent: 0 }
@@ -388,17 +475,17 @@ export function AbntPreview({ doc }: { doc: AbntDocument }) {
           <div key={i} style={{ margin: "4pt 0" }}>
             {b.items.map((it, j) => (
               <Fragment key={j}>
-                <div style={{ paddingLeft: isReport ? "1.27cm" : "1.25cm", textAlign: isReport ? "left" : "justify", lineHeight: 1.15 }}>
+                <div style={{ paddingLeft: isReport ? "1.27cm" : "1.25cm", textAlign: isReport || isCnpq ? "left" : "justify", lineHeight: 1.15 }}>
                   {b.ordered ? (
-                    <span>{isReport ? `${j + 1}. ` : `${String.fromCharCode(97 + (j % 26))}) `}</span>
+                    <span>{isReport || isCnpq ? `${j + 1}. ` : `${String.fromCharCode(97 + (j % 26))}) `}</span>
                   ) : (
                     <span>– </span>
                   )}
                   <Runs runs={it.runs} />
                 </div>
                 {(it.subItems ?? []).map((sub, k) => (
-                  <div key={k} style={{ paddingLeft: isReport ? "1.8cm" : "1.8cm", textAlign: isReport ? "left" : "justify", lineHeight: 1.15 }}>
-                    <span>{isReport && b.ordered ? `${j + 1}.${k + 1} ` : "– "}</span>
+                  <div key={k} style={{ paddingLeft: isReport ? "1.8cm" : "1.8cm", textAlign: isReport || isCnpq ? "left" : "justify", lineHeight: 1.15 }}>
+                    <span>{(isReport || isCnpq) && b.ordered ? `${j + 1}.${k + 1} ` : "– "}</span>
                     <Runs runs={sub.runs} />
                   </div>
                 ))}
@@ -415,7 +502,7 @@ export function AbntPreview({ doc }: { doc: AbntDocument }) {
               fontSize: "10pt",
               lineHeight: 1.15,
               whiteSpace: "pre-wrap",
-              margin: "6pt 0",
+              margin: isCnpq ? "6pt 0 6pt 1.25cm" : "6pt 0",
             }}
           >
             {b.text}
@@ -431,6 +518,46 @@ export function AbntPreview({ doc }: { doc: AbntDocument }) {
         );
       }
       case "figure":
+        if (isCnpq) {
+          return (
+            <div key={i} style={{ margin: "10pt 0" }}>
+              {b.caption ? <div style={centered({ marginBottom: 4 })}>{`Figura ${b.num ?? ""} - ${b.caption}`}</div> : null}
+              <img
+                src={b.src}
+                alt={b.caption ?? "Figura"}
+                style={{
+                  maxWidth: "100%",
+                  maxHeight: "14cm",
+                  display: "block",
+                  ...(b.align === "left" ? { marginRight: "auto" } : b.align === "right" ? { marginLeft: "auto" } : { margin: "0 auto" }),
+                }}
+                onError={(e) => {
+                  const el = e.currentTarget;
+                  el.style.display = "none";
+                  const ph = el.nextElementSibling as HTMLElement | null;
+                  if (ph) ph.style.display = "flex";
+                }}
+              />
+              <div
+                style={{
+                  display: "none",
+                  height: "4cm",
+                  border: "1px solid #999",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontFamily: monoCss,
+                  fontSize: "9pt",
+                  color: "#555",
+                }}
+              >
+                {`[ imagem não disponível: ${b.src.slice(0, 60)} ]`}
+              </div>
+              {b.sourceNote ? (
+                <div style={centered({ marginTop: 4, marginBottom: 10 })}>{b.sourceNote.startsWith("Fonte") ? b.sourceNote : `Fonte: ${b.sourceNote}`}</div>
+              ) : null}
+            </div>
+          );
+        }
         return (
           <div key={i} style={{ margin: "10pt 0" }}>
             <img
@@ -482,13 +609,13 @@ export function AbntPreview({ doc }: { doc: AbntDocument }) {
         return (
           <div key={i} style={{ margin: "10pt 0", breakInside: "avoid" }}>
             {b.caption ? (
-              <div style={centered({ marginBottom: 6 })}>{isReport ? `Tabela ${b.num ?? ""} - ${b.caption}` : `Tabela ${b.num ?? ""} – ${b.caption}`}</div>
+              <div style={centered({ marginBottom: 6 })}>{isReport || isCnpq ? `Tabela ${b.num ?? ""} - ${b.caption}` : `Tabela ${b.num ?? ""} – ${b.caption}`}</div>
             ) : null}
             <table
               style={{
                 width: "100%",
-                borderCollapse: isReport ? "collapse" : "separate",
-                fontSize: isReport ? "12pt" : "10pt",
+                borderCollapse: isReport || isCnpq ? "collapse" : "separate",
+                fontSize: isReport || isCnpq ? "12pt" : "10pt",
                 lineHeight: 1.15,
               }}
             >
@@ -497,15 +624,17 @@ export function AbntPreview({ doc }: { doc: AbntDocument }) {
                   {b.header.map((cell, c) => (
                     <th
                       key={c}
-                      style={isReport
-                        ? { fontWeight: 400, textAlign: "center", border: "1px solid #000", padding: "3px 6px" }
-                        : {
-                            fontWeight: 700,
-                            textAlign: "center",
-                            borderTop: "1px solid #000",
-                            borderBottom: "1px solid #000",
-                            padding: "3px 5px",
-                          }}
+                      style={isCnpq
+                        ? { fontWeight: 700, textAlign: "center", border: "1px solid #000", padding: "3px 6px" }
+                        : isReport
+                          ? { fontWeight: 400, textAlign: "center", border: "1px solid #000", padding: "3px 6px" }
+                          : {
+                              fontWeight: 700,
+                              textAlign: "center",
+                              borderTop: "1px solid #000",
+                              borderBottom: "1px solid #000",
+                              padding: "3px 5px",
+                            }}
                     >
                       <Runs runs={cell} />
                     </th>
@@ -520,10 +649,12 @@ export function AbntPreview({ doc }: { doc: AbntDocument }) {
                         key={c}
                         style={isReport
                           ? { border: "1px solid #000", padding: "3px 6px", textAlign: "center" }
-                          : {
-                              padding: "3px 5px",
-                              textAlign: b.align[c] === "center" ? "center" : b.align[c] === "right" ? "right" : "left",
-                            }}
+                          : isCnpq
+                            ? { border: "1px solid #000", padding: "3px 6px", textAlign: b.align[c] === "center" ? "center" : b.align[c] === "right" ? "right" : "left" }
+                            : {
+                                padding: "3px 5px",
+                                textAlign: b.align[c] === "center" ? "center" : b.align[c] === "right" ? "right" : "left",
+                              }}
                       >
                         <Runs runs={row[c] ?? []} />
                       </td>
@@ -532,7 +663,7 @@ export function AbntPreview({ doc }: { doc: AbntDocument }) {
                 ))}
               </tbody>
             </table>
-            {isReport ? (
+            {isReport || isCnpq ? (
               b.sourceNote ? (
                 <div style={centered({ marginTop: 4, marginBottom: 10 })}>{b.sourceNote.startsWith("Fonte") ? b.sourceNote : `Fonte: ${b.sourceNote}`}</div>
               ) : null
@@ -549,14 +680,79 @@ export function AbntPreview({ doc }: { doc: AbntDocument }) {
     }
   };
 
+  const av = s.cnpq.avaliacao;
+  const hasAvaliacao = isCnpq && Object.values(av).some((v) => v.trim());
+  const cnpqAvaliacao: ReactNode = hasAvaliacao ? (
+    <>
+      <div style={centered({ fontWeight: 700, margin: "20pt 0 10pt" })}>AVALIAÇÃO GERAL DO PROJETO</div>
+      {(
+        [
+          { parts: [{ text: "1. Descreva os principais obstáculos e dificuldades encontrados na pesquisa:", bold: true }], answer: av.obstaculos, before: "10pt" },
+          { parts: [{ text: "2. Preencha os campos abaixo se a pesquisa envolver os itens relacionados:", bold: true }], before: "14pt" },
+          {
+            parts: [
+              { text: "2.1. Material químico ou genético:", bold: true },
+              { text: " discrimine a quantidade utilizada e a forma de descarte do material ao término da pesquisa." },
+            ],
+            answer: av.materialQuimico,
+          },
+          {
+            parts: [
+              { text: "2.2. Meio ambiente:", bold: true },
+              { text: " descreva se, durante o desenvolvimento do trabalho, houve algum tipo de agressão ou violação do equilíbrio ecológico e ambiental." },
+            ],
+            answer: av.meioAmbiente,
+          },
+          { parts: [{ text: "3. Descreva se houve contribuições da pesquisa para:", bold: true }], before: "14pt" },
+          { parts: [{ text: "3.1. O desenvolvimento científico e tecnológico" }], answer: av.devCientifico, before: "8pt" },
+          { parts: [{ text: "3.2. A capacitação de recursos humanos e sua fixação na área do projeto" }], answer: av.capacitacao, before: "8pt" },
+          { parts: [{ text: "3.3. A transferência de conhecimentos ou geração de novos produtos, tecnologias ou patentes" }], answer: av.transferencia, before: "8pt" },
+          {
+            parts: [
+              { text: "4. Parecer do coordenador", bold: true },
+              { text: " Relato das atividades desenvolvidas pelo aluno e seu rendimento acadêmico." },
+            ],
+            answer: av.parecerCoordenador,
+            before: "14pt",
+          },
+        ] as { parts: { text: string; bold?: boolean }[]; answer?: string; before?: string }[]
+      ).map((q, i) => (
+        <Fragment key={i}>
+          <p style={{ textAlign: "justify", lineHeight: 1.15, margin: `${q.before ?? "6pt"} 0 4pt` }}>
+            {q.parts.map((p, j) => (p.bold ? <b key={j}>{p.text}</b> : <span key={j}>{p.text}</span>))}
+          </p>
+          {q.answer !== undefined ? (
+            <div style={{ border: "1px solid #000", padding: "6pt 8pt" }}>
+              {q.answer
+                .split(/\n\n+/)
+                .filter((p) => p.trim())
+                .map((p, j) => (
+                  <p key={j} style={{ textAlign: "justify", textIndent: "1.25cm", lineHeight: 1.15, margin: 0 }}>
+                    {p.trim()}
+                  </p>
+                ))}
+            </div>
+          ) : null}
+        </Fragment>
+      ))}
+      {["Assinatura do Coordenador do Projeto", "Assinatura do Bolsista", "Assinatura do Coordenador de Pesquisa do campus"].map((label, i) => (
+        <div key={i} style={{ margin: "26pt auto 0", width: "60%" }}>
+          <div style={{ borderTop: "1px solid #000" }} />
+          <div style={centered({ marginTop: 4 })}>{label}</div>
+        </div>
+      ))}
+    </>
+  ) : null;
+
   pages.push(
     <div style={pageStyle} key="corpo">
+      {cnpqHeader}
       {textHeader}
       {isReport && s.report.showCover ? <ReportCoverBlock doc={doc} /> : null}
       {doc.body.map(renderBlock)}
       {doc.references.length ? (
         <>
-          <div style={isReport ? centered({ marginTop: "18pt" }) : headingStyle(1, false)}>REFERÊNCIAS</div>
+          <div style={isCnpq ? { fontWeight: 700, margin: "20pt 0 10pt" } : isReport ? centered({ marginTop: "18pt" }) : headingStyle(1, false)}>REFERÊNCIAS</div>
           {doc.references.map((entry, i) => (
             <p key={i} style={{ textAlign: "left", lineHeight: 1.15, margin: "0 0 12pt" }}>
               <Runs runs={entry} />
@@ -564,6 +760,7 @@ export function AbntPreview({ doc }: { doc: AbntDocument }) {
           ))}
         </>
       ) : null}
+      {cnpqAvaliacao}
     </div>
   );
 

@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useMemo, useRef, useState } from "react";
 import { parseMarkdown } from "@/lib/abnt/parse";
 import { DEFAULT_SETTINGS, type AbntSettings } from "@/lib/abnt/types";
-import { SAMPLE_MARKDOWN, SAMPLE_REPORT_MARKDOWN } from "@/lib/abnt/sample";
+import { SAMPLE_MARKDOWN, SAMPLE_REPORT_MARKDOWN, SAMPLE_CNPQ_MARKDOWN } from "@/lib/abnt/sample";
 import { AbntPreview } from "@/components/abnt/preview";
 import { SettingsPanel } from "@/components/abnt/settings-panel";
 import { SyntaxGuide } from "@/components/abnt/guide";
@@ -21,7 +21,7 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { BookOpen, Eraser, FileDown, FileText, FlaskConical, Loader2, NotebookPen, ScrollText } from "lucide-react";
+import { BookOpen, Eraser, FileDown, FileText, FlaskConical, GraduationCap, Loader2, NotebookPen, ScrollText } from "lucide-react";
 
 type Format = "docx" | "pdf";
 
@@ -89,6 +89,18 @@ export default function Home() {
       style: "relatorio",
       report: { ...DEFAULT_SETTINGS.report, ...s.report },
       fileName: s.fileName === "artigo-abnt" || s.fileName === "" ? "relatorio-tecnico" : s.fileName,
+    }));
+  }
+
+  /** carrega o template CNPq e alterna para o estilo Relatório CNPq */
+  function loadCnpqTemplate() {
+    setMarkdown(SAMPLE_CNPQ_MARKDOWN);
+    setSettings((s) => ({
+      ...s,
+      style: "cnpq",
+      font: "arial",
+      cnpq: { ...DEFAULT_SETTINGS.cnpq, ...s.cnpq },
+      fileName: s.fileName === "artigo-abnt" || s.fileName === "relatorio-tecnico" || s.fileName === "" ? "relatorio-cnpq" : s.fileName,
     }));
   }
 
@@ -262,6 +274,10 @@ export default function Home() {
             <Button variant="ghost" size="sm" onClick={loadReportTemplate} title="Carrega o esqueleto de relatório técnico (Experimento)">
               <FlaskConical className="mr-1.5 h-4 w-4" />
               Template de relatório
+            </Button>
+            <Button variant="ghost" size="sm" onClick={loadCnpqTemplate} title="Carrega o esqueleto de Relatório CNPq (modelo IFC)">
+              <GraduationCap className="mr-1.5 h-4 w-4" />
+              Template CNPq
             </Button>
             <Button
               size="sm"

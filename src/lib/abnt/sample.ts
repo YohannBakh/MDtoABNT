@@ -177,3 +177,73 @@ Fonte: dados da atividade experimental.
 
 A partir dos resultados obtidos, é possível concluir que os valores medidos no experimento apresentaram boa concordância com os valores teóricos calculados, com desvios inferiores a 1,5%. As pequenas diferenças observadas devem-se principalmente à tolerância dos resistores utilizados e à precisão dos instrumentos de medição, confirmando a validade dos conceitos aplicados.
 `;
+
+/* Template de Relatório CNPq (modelo IFC: capa, resumo, seções numeradas,
+ * referências e Avaliação Geral do Projeto — respostas ficam no painel) */
+export const SAMPLE_CNPQ_MARKDOWN = `---
+title: Título do projeto de pesquisa desenvolvido com bolsa CNPq
+authors:
+  - Nome do Estudante Bolseiro
+institution: INSTITUTO FEDERAL CATARINENSE
+department: CURSO DE ENGENHARIA DE CONTROLE E AUTOMAÇÃO
+city: Luzerna
+advisor: Prof. Orientador do Projeto
+fileName: relatorio-cnpq
+---
+
+## Resumo
+
+Este trabalho apresenta o desenvolvimento realizado no âmbito do projeto vinculado ao edital do CNPq. Descreva aqui, em um único parágrafo, o objetivo do projeto, o método utilizado, os principais resultados alcançados e as conclusões obtidas durante a vigência da bolsa.
+
+Palavras-chave: palavra 1, palavra 2, palavra 3, palavra 4
+
+# Introdução
+
+Contextualize o tema da pesquisa e apresente o problema tratado pelo projeto. Os drones constituem sistemas que integram diferentes áreas da computação e da engenharia, envolvendo sistemas embarcados, sensores, comunicação, controle e processamento de dados — adapte este parágrafo ao seu projeto.
+
+Descreva também os objetivos do projeto e como o relatório está organizado.
+
+# Materiais e métodos
+
+## Plataforma utilizada
+
+Descreva o equipamento, o software ou o material experimental utilizado no desenvolvimento do projeto.
+
+A arquitetura geral do sistema pode ser representada da seguinte forma:
+
+## Primeira abordagem
+
+Explique a primeira abordagem testada no projeto. Exemplo de código:
+
+    var arDrone = require('ar-drone');
+    var client  = arDrone.createClient();
+    client.takeoff();
+
+## Comandos utilizados
+
+Entre os comandos trabalhados durante o desenvolvimento estavam:
+
+Tabela 1 - Comandos do equipamento
+
+| Comando | Finalidade |
+| --- | --- |
+| AT\\*REF | Controle de estados como decolagem e pouso |
+| AT\\*PCMD | Controle de movimentação |
+| AT\\*CONFIG | Configuração do equipamento |
+
+# Resultados
+
+Apresente os resultados obtidos em cada etapa, incluindo as tentativas que não alcançaram o resultado esperado e o que foi aprendido com elas.
+
+3.4 Resultados parciais podem ser descritos em subseções próprias.
+
+# Considerações finais
+
+Relacione os resultados com os objetivos propostos, aponte as limitações encontradas e sugira trabalhos futuros. As hipóteses formuladas devem ser discutidas à luz dos dados coletados durante a vigência do projeto.
+
+## Referências
+
+CNPQ. **Relatório final de acompanhamento**. Brasília: CNPq, [s. d.]. Disponível em: https://www.gov.br/cnpq. Acesso em: 28 ago. 2026.
+
+PAPARAZZI UAV. **AR Drone 2: AT Commands**. [S. l.], [s. d.]. Disponível em: https://wiki.paparazziuav.org. Acesso em: 30 ago. 2026.
+`;

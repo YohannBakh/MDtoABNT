@@ -119,10 +119,10 @@ export type Block =
 
 /* ------------------------- Configurações ------------------------- */
 
-/** Estilo do documento: artigo ABNT ou relatório técnico de experimento */
-export type DocStyle = "abnt" | "relatorio";
+/** Estilo do documento: artigo ABNT, relatório técnico de experimento ou relatório CNPq */
+export type DocStyle = "abnt" | "relatorio" | "cnpq";
 
-/** Campos da capa do relatório técnico (cabeçalho institucional + tabela de identificação) */
+/** Campos do estilo Relatório Técnico de Experimento */
 export interface ReportCover {
   /** inclui o título e a tabela de identificação antes do texto (tudo na 1ª página, sem quebrar) */
   showCover: boolean;
@@ -141,6 +141,34 @@ export interface ReportCover {
   periodo: string;
   /** ex.: "14/09/2026" */
   dataAtividade: string;
+}
+
+/** Campos do estilo Relatório CNPq (modelo de relatório final de bolsa/edital) */
+export interface CnpqConfig {
+  /** capa em página própria (padrão: ligado) */
+  showCover: boolean;
+  /** 1ª linha do bloco ministerial do cabeçalho */
+  ministry1: string;
+  /** 2ª linha do bloco ministerial do cabeçalho */
+  ministry2: string;
+  /** campus exibido na capa, ex.: "CAMPUS LUZERNA" */
+  campus: string;
+  /** tipo de relatório, ex.: "Relatório Final" */
+  reportKind: string;
+  /** edital de origem, ex.: "Nº 08/2025" */
+  edital: string;
+  /** mês/ano da cidade na capa, ex.: "08/2026" */
+  monthYear: string;
+  /** respostas do formulário “Avaliação Geral do Projeto” — deixe em branco para omitir a seção */
+  avaliacao: {
+    obstaculos: string;
+    materialQuimico: string;
+    meioAmbiente: string;
+    devCientifico: string;
+    capacitacao: string;
+    transferencia: string;
+    parecerCoordenador: string;
+  };
 }
 
 export interface AbntToggles {
@@ -182,6 +210,8 @@ export interface AbntSettings {
   fileName: string;
   /** campos da capa no estilo Relatório Técnico */
   report: ReportCover;
+  /** campos no estilo Relatório CNPq */
+  cnpq: CnpqConfig;
   toggles: AbntToggles;
 }
 
@@ -231,6 +261,25 @@ export const DEFAULT_SETTINGS: AbntSettings = {
     periodo: "2026 / 2º Semestre",
     dataAtividade: "",
   },
+  /** campos do estilo Relatório CNPq */
+  cnpq: {
+    showCover: true,
+    ministry1: "MINISTÉRIO DA EDUCAÇÃO",
+    ministry2: "SECRETARIA DE EDUCAÇÃO PROFISSIONAL E TECNOLÓGICA",
+    campus: "CAMPUS LUZERNA",
+    reportKind: "Relatório Final",
+    edital: "Nº 08/2025",
+    monthYear: "",
+    avaliacao: {
+      obstaculos: "",
+      materialQuimico: "",
+      meioAmbiente: "",
+      devCientifico: "",
+      capacitacao: "",
+      transferencia: "",
+      parecerCoordenador: "",
+    },
+  },
   toggles: {
     lineBreaks: true,
     capa: true,
@@ -276,6 +325,24 @@ export const REPORT = {
   sectionIndent: 1.27,
   sectionHanging: 0.64,
   bodySize: 12,
+} as const;
+
+/** Medidas do estilo Relatório CNPq (modelo IFC: Arial 12, espaçamento 1,15, margens 2 cm) */
+export const CNPQ = {
+  margin: { top: 4.3, left: 2, bottom: 2, right: 2 },
+  /** distância do topo da página ao início do cabeçalho (cm) */
+  headerTop: 1.85,
+  /** logo do IF no cabeçalho (cm) — proporção da imagem 828×275 */
+  logoWidth: 4.9,
+  logoHeight: 1.63,
+  lineDocx: 276, // 1,15 linha
+  lineFactor: 1.15,
+  firstLineIndent: 1.25,
+  bodySize: 12,
+  /** corpo do bloco ministerial do cabeçalho (pt) */
+  headerSize: 8,
+  /** recuo esquerdo do bloco de apresentação da capa (cm) */
+  presentIndent: 9.3,
 } as const;
 
 /** Fontes por escolha do usuário */

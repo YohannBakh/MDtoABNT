@@ -1,10 +1,12 @@
-/* API de conversão MD → ABNT / Relatório Técnico (DOCX / PDF) */
+/* API de conversão MD → ABNT / Relatório Técnico / Relatório CNPq (DOCX / PDF) */
 import { parseMarkdown } from "@/lib/abnt/parse";
 import { DEFAULT_SETTINGS, type AbntSettings } from "@/lib/abnt/types";
 import { buildDocxBlob } from "@/lib/abnt/docx";
 import { buildReportDocxBlob } from "@/lib/abnt/docx-report";
+import { buildCnpqDocxBlob } from "@/lib/abnt/docx-cnpq";
 import { buildPdfBuffer } from "@/lib/abnt/pdf";
 import { buildReportPdfBuffer } from "@/lib/abnt/pdf-report";
+import { buildCnpqPdfBuffer } from "@/lib/abnt/pdf-cnpq";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -35,6 +37,11 @@ export async function POST(req: Request) {
       ...(body.settings ?? {}),
       toggles: { ...DEFAULT_SETTINGS.toggles, ...(body.settings?.toggles ?? {}) },
       report: { ...DEFAULT_SETTINGS.report, ...(body.settings?.report ?? {}) },
+      cnpq: {
+        ...DEFAULT_SETTINGS.cnpq,
+        ...(body.settings?.cnpq ?? {}),
+        avaliacao: { ...DEFAULT_SETTINGS.cnpq.avaliacao, ...(body.settings?.cnpq?.avaliacao ?? {}) },
+      },
     };
     const format = body.format === "pdf" ? "pdf" : "docx";
 
@@ -46,7 +53,12 @@ export async function POST(req: Request) {
     const base = sanitizeFileName(doc.settings.fileName);
 
     if (format === "pdf") {
-      const buf = settings.style === "relatorio" ? await buildReportPdfBuffer(doc) : await buildPdfBuffer(doc);
+      const buf =
+        settings.style === "relatorio"
+          ? await buildReportPdfBuffer(doc)
+          : settings.style === "cnpq"
+            ? await buildCnpqPdfBuffer(doc)
+            : await buildPdfBuffer(doc);
       return new Response(new Uint8Array(buf), {
         headers: {
           "Content-Type": "application/pdf",
@@ -56,7 +68,12 @@ export async function POST(req: Request) {
       });
     }
 
-    const buf = settings.style === "relatorio" ? await buildReportDocxBlob(doc) : await buildDocxBlob(doc);
+    const buf =
+      settings.style === "relatorio"
+        ? await buildReportDocxBlob(doc)
+        : settings.style === "cnpq"
+          ? await buildCnpqDocxBlob(doc)
+          : await buildDocxBlob(doc);
     return new Response(new Uint8Array(buf), {
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",

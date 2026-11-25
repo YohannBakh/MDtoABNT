@@ -43,20 +43,20 @@ export function SettingsPanel({ settings, onChange }: Props) {
     onChange({ toggles: { ...tg, [key]: value } });
   const rep = settings.report;
   const setRep = (patch: Partial<AbntSettings["report"]>) => onChange({ report: { ...rep, ...patch } });
+  const cq = settings.cnpq;
+  const setCq = (patch: Partial<AbntSettings["cnpq"]>) => onChange({ cnpq: { ...cq, ...patch } });
+  const setAv = (patch: Partial<AbntSettings["cnpq"]["avaliacao"]>) =>
+    onChange({ cnpq: { ...cq, avaliacao: { ...cq.avaliacao, ...patch } } });
   const isReport = settings.style === "relatorio";
+  const isCnpq = settings.style === "cnpq";
 
   /** ao trocar de estilo, ajusta também o nome de arquivo padrão */
   const changeStyle = (style: AbntSettings["style"]) => {
-    const wasAbntDefault = settings.fileName === "artigo-abnt" || settings.fileName === "";
-    const wasReportDefault = settings.fileName === "relatorio-tecnico" || settings.fileName === "";
-    const fileName =
-      style === "relatorio"
-        ? wasAbntDefault
-          ? "relatorio-tecnico"
-          : settings.fileName
-        : wasReportDefault
-          ? "artigo-abnt"
-          : settings.fileName;
+    const defaults = ["artigo-abnt", "relatorio-tecnico", "relatorio-cnpq"];
+    const wasDefault = defaults.includes(settings.fileName) || settings.fileName === "";
+    const fileFor = (st: AbntSettings["style"]) =>
+      st === "relatorio" ? "relatorio-tecnico" : st === "cnpq" ? "relatorio-cnpq" : "artigo-abnt";
+    const fileName = wasDefault ? fileFor(style) : settings.fileName;
     onChange({ style, fileName });
   };
 
@@ -71,12 +71,15 @@ export function SettingsPanel({ settings, onChange }: Props) {
             <SelectContent>
               <SelectItem value="abnt">Artigo ABNT (NBR 14724 / 6022)</SelectItem>
               <SelectItem value="relatorio">Relatório Técnico (Experimento)</SelectItem>
+              <SelectItem value="cnpq">Relatório CNPq (bolsa / edital)</SelectItem>
             </SelectContent>
           </Select>
           <p className="text-[11px] text-neutral-400 dark:text-neutral-500">
             {isReport
               ? "Modelo do curso: cabeçalho institucional em todas as páginas, título e tabela de identificação na 1ª página e o texto começando logo em seguida — sem gastar página com capa."
-              : "Formato acadêmico completo: capa, folha de rosto, aprovação, resumo, sumário e referências NBR."}
+              : isCnpq
+                ? "Modelo CNPq: logo e bloco ministerial no cabeçalho de todas as páginas, capa própria, RESUMO com palavras-chave, seções numeradas, referências e o formulário “Avaliação Geral do Projeto” com assinaturas."
+                : "Formato acadêmico completo: capa, folha de rosto, aprovação, resumo, sumário e referências NBR."}
           </p>
         </Section>
 
@@ -163,6 +166,77 @@ export function SettingsPanel({ settings, onChange }: Props) {
                 </Field>
               </>
             )}
+          </Section>
+        )}
+
+        {isCnpq && (
+          <Section title="Cabeçalho ministerial">
+            <Field label="1ª linha do bloco (Ministério)">
+              <Input value={cq.ministry1} onChange={(e) => setCq({ ministry1: e.target.value })} />
+            </Field>
+            <Field label="2ª linha do bloco (Secretaria)">
+              <Input value={cq.ministry2} onChange={(e) => setCq({ ministry2: e.target.value })} />
+            </Field>
+            <p className="text-[11px] text-neutral-400 dark:text-neutral-500">
+              A 3ª linha usa a Instituição (seção Institucional abaixo) e o logo oficial do IF é fixo. O conjunto aparece no topo de todas as páginas.
+            </p>
+          </Section>
+        )}
+
+        {isCnpq && (
+          <Section title="Capa do relatório CNPq">
+            <div className="flex items-center justify-between gap-4 rounded-md border border-neutral-200 px-3 py-2 dark:border-neutral-800">
+              <Label htmlFor="cnpq-showcover" className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
+                Capa em página própria (com RESUMO)
+              </Label>
+              <Switch id="cnpq-showcover" checked={cq.showCover} onCheckedChange={(v) => setCq({ showCover: v })} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Campus">
+                <Input value={cq.campus} onChange={(e) => setCq({ campus: e.target.value })} placeholder="CAMPUS LUZERNA" />
+              </Field>
+              <Field label="Tipo de relatório">
+                <Input value={cq.reportKind} onChange={(e) => setCq({ reportKind: e.target.value })} placeholder="Relatório Final" />
+              </Field>
+              <Field label="Edital">
+                <Input value={cq.edital} onChange={(e) => setCq({ edital: e.target.value })} placeholder="Nº 08/2025" />
+              </Field>
+              <Field label="Mês/ano (cidade)">
+                <Input value={cq.monthYear} onChange={(e) => setCq({ monthYear: e.target.value })} placeholder="08/2026" />
+              </Field>
+            </div>
+            <p className="text-[11px] text-neutral-400 dark:text-neutral-500">
+              Título, autores, curso, cidade, orientador e instituição vêm das seções “Identificação” e “Institucional” abaixo.
+            </p>
+          </Section>
+        )}
+
+        {isCnpq && (
+          <Section title="Avaliação Geral do Projeto (CNPq)">
+            <p className="text-[11px] text-neutral-400 dark:text-neutral-500">
+              Respostas do formulário do relatório final. Se todas ficarem em branco, a seção e as assinaturas não são geradas.
+            </p>
+            <Field label="1. Principais obstáculos e dificuldades encontrados na pesquisa">
+              <Textarea className="min-h-16" value={cq.avaliacao.obstaculos} onChange={(e) => setAv({ obstaculos: e.target.value })} />
+            </Field>
+            <Field label="2.1. Material químico ou genético (descarte)">
+              <Textarea className="min-h-16" value={cq.avaliacao.materialQuimico} onChange={(e) => setAv({ materialQuimico: e.target.value })} />
+            </Field>
+            <Field label="2.2. Meio ambiente (agressão / violação do equilíbrio)">
+              <Textarea className="min-h-16" value={cq.avaliacao.meioAmbiente} onChange={(e) => setAv({ meioAmbiente: e.target.value })} />
+            </Field>
+            <Field label="3.1. Contribuições para o desenvolvimento científico e tecnológico">
+              <Textarea className="min-h-16" value={cq.avaliacao.devCientifico} onChange={(e) => setAv({ devCientifico: e.target.value })} />
+            </Field>
+            <Field label="3.2. Capacitação de recursos humanos e fixação na área do projeto">
+              <Textarea className="min-h-16" value={cq.avaliacao.capacitacao} onChange={(e) => setAv({ capacitacao: e.target.value })} />
+            </Field>
+            <Field label="3.3. Transferência de conhecimentos, produtos, tecnologias ou patentes">
+              <Textarea className="min-h-16" value={cq.avaliacao.transferencia} onChange={(e) => setAv({ transferencia: e.target.value })} />
+            </Field>
+            <Field label="4. Parecer do coordenador (atividades e rendimento acadêmico)">
+              <Textarea className="min-h-16" value={cq.avaliacao.parecerCoordenador} onChange={(e) => setAv({ parecerCoordenador: e.target.value })} />
+            </Field>
           </Section>
         )}
 
@@ -254,7 +328,7 @@ export function SettingsPanel({ settings, onChange }: Props) {
           <div className="grid grid-cols-1 gap-2.5">
             {(
               (
-                isReport
+                isReport || isCnpq
                   ? ([
                       ["lineBreaks", "Enter cria quebra de linha (ou use \\\\ no fim da linha)"],
                       ["numberSections", "Numerar seções (1., 1.1, 1.1.1 …)"],

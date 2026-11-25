@@ -126,6 +126,25 @@ Texto alinhado à direita.
 
 # Nova seção em página própria`,
   },
+  {
+    title: "Relatório CNPq",
+    body: "Escolha o estilo “Relatório CNPq” nas Configurações: capa com logo IF e bloco ministerial, RESUMO com palavras-chave (separadas por vírgula), seções numeradas em negrito e referências à esquerda. As respostas do formulário “Avaliação Geral do Projeto” (obstáculos, itens 2.1/2.2, contribuições 3.1–3.3 e parecer do coordenador) ficam em uma seção própria do painel, e as linhas de assinatura são geradas ao final automaticamente.",
+    code: `## Resumo
+
+Texto do resumo em um único parágrafo...
+
+Palavras-chave: palavra 1, palavra 2, palavra 3
+
+# Introdução
+
+Primeira seção numerada do relatório...
+
+Tabela 1 - Comandos do equipamento
+
+| Comando | Finalidade |
+| --- | --- |
+| AT*REF | Controle de estados |`,
+  },
 ];
 
 const normas = [
