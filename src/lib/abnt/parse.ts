@@ -470,16 +470,17 @@ const containerExtension = {
 /** token HTML "<!-- pagebreak -->" (ou "quebra de página") vira quebra de página */
 const PAGEBREAK_RE = /<!--\s*(pagebreak|quebra\s*de\s*p[áa]gina)\s*-->/i;
 
-/** extensão marked: comando de texto "\\" no fim da linha → quebra de linha manual (independe do ajuste de Enter) */
+/** extensão marked: comando de texto "\\" (ou "\") no fim da linha → quebra de linha manual (independe do ajuste de Enter);
+ *  aceita 1 ou 2 barras para também consumir a barra solta antes de containers ::: (evita "\" literal no texto) */
 const lineBreakCmdExtension = {
   name: "lineBreakCmd",
   level: "inline" as const,
   start(src: string) {
-    const i = src.indexOf("\\\\");
-    return i === -1 ? undefined : i;
+    const i = src.match(/\\{1,2}[ \t]*(?:\r?\n|$)/)?.index;
+    return i === undefined ? undefined : i;
   },
   tokenizer(src: string): Token | undefined {
-    const m = /^\\\\[ \t]*(?:\r?\n|$)/.exec(src);
+    const m = /^\\{1,2}[ \t]*(?:\r?\n|$)/.exec(src);
     if (!m) return undefined;
     return { type: "lineBreakCmd", raw: m[0] } as unknown as Token;
   },
