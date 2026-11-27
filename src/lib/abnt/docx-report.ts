@@ -252,29 +252,33 @@ function equationPara(runs: InlineRun[], num: number | undefined, doc: AbntDocum
 /* figuras: legenda e fonte ABAIXO (padrão dos relatórios), ambas 12pt centradas */
 function figureBlocks(buf: Buffer, kind: "png" | "jpg" | "gif", w: number, h: number, caption: string | undefined, num: number | undefined, source: string | undefined, doc: AbntDocument, align?: Align): (Paragraph | Table)[] {
   const f = mainFont(doc);
-  const out: (Paragraph | Table)[] = [
-    new Paragraph({
-      alignment: align === "left" ? AlignmentType.LEFT : align === "right" ? AlignmentType.RIGHT : AlignmentType.CENTER,
-      spacing: { before: 120, after: 60, line: LINE_115 },
-      children: [new ImageRun({ type: kind, data: buf, transformation: { width: w, height: h } })],
-    }),
-  ];
+  const out: (Paragraph | Table)[] = [];
+  // NBR 14724: identificação da figura na parte superior
   if (caption) {
     const label = num !== undefined ? `Figura ${num} - ${caption}` : caption;
     out.push(
       new Paragraph({
         alignment: AlignmentType.CENTER,
-        spacing: { line: LINE_115 },
+        spacing: { before: 120, line: LINE_115 },
+        keepNext: true,
         children: [new TextRun({ text: label, size: 24, font: f.docx })],
       })
     );
   }
-  if (source) {
+  out.push(
+    new Paragraph({
+      alignment: align === "left" ? AlignmentType.LEFT : align === "right" ? AlignmentType.RIGHT : AlignmentType.CENTER,
+      spacing: { after: source || doc.settings.sourceNote ? 40 : 120, line: LINE_115 },
+      children: [new ImageRun({ type: kind, data: buf, transformation: { width: w, height: h } })],
+    })
+  );
+  const src = source || doc.settings.sourceNote;
+  if (src) {
     out.push(
       new Paragraph({
         alignment: AlignmentType.CENTER,
         spacing: { line: LINE_115, after: 120 },
-        children: [new TextRun({ text: source.startsWith("Fonte") ? source : `Fonte: ${source}`, size: 24, font: f.docx })],
+        children: [new TextRun({ text: src.startsWith("Fonte") ? src : `Fonte: ${src}`, size: 24, font: f.docx })],
       })
     );
   }

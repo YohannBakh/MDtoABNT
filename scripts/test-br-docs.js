@@ -1,9 +1,9 @@
 /* Testa o comando \\ de quebra de linha em DOCX + PDF (estilo relatório),
  * com o ajuste de Enter ligado e desligado. Saída em /tmp e imagens em /tmp/render */
-const { parseMarkdown } = require("/tmp/gentest/parse.js");
-const { DEFAULT_SETTINGS } = require("/tmp/gentest/types.js");
-const { buildReportDocxBlob } = require("/tmp/gentest/docx-report.js");
-const { buildReportPdfBuffer } = require("/tmp/gentest/pdf-report.js");
+const { parseMarkdown } = require("/home/z/my-project/.gentest/abnt/parse.js");
+const { DEFAULT_SETTINGS } = require("/home/z/my-project/.gentest/abnt/types.js");
+const { buildReportDocxBlob } = require("/home/z/my-project/.gentest/abnt/docx-report.js");
+const { buildReportPdfBuffer } = require("/home/z/my-project/.gentest/abnt/pdf-report.js");
 const fs = require("fs");
 
 const MD = `# Resultados e cálculos

@@ -1,6 +1,6 @@
 /* Testa a sintaxe <u> (sublinhado) e o comportamento de containers/quebras */
-const { parseMarkdown } = require("/tmp/gentest/parse.js");
-const { DEFAULT_SETTINGS } = require("/tmp/gentest/types.js");
+const { parseMarkdown } = require("/home/z/my-project/.gentest/abnt/parse.js");
+const { DEFAULT_SETTINGS } = require("/home/z/my-project/.gentest/abnt/types.js");
 const BS = String.fromCharCode(92);
 
 // 1. sublinhado <u> em parágrafo, com negrito dentro

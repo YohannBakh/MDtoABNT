@@ -560,6 +560,9 @@ export function AbntPreview({ doc }: { doc: AbntDocument }) {
         }
         return (
           <div key={i} style={{ margin: "10pt 0" }}>
+            {b.caption ? (
+              <div style={centered({ marginBottom: 4 })}>{`Figura ${b.num ?? ""} ${isReport ? "-" : "–"} ${b.caption}`}</div>
+            ) : null}
             <img
               src={b.src}
               alt={b.caption ?? "Figura"}
@@ -590,19 +593,9 @@ export function AbntPreview({ doc }: { doc: AbntDocument }) {
             >
               {`[ imagem não disponível: ${b.src.slice(0, 60)} ]`}
             </div>
-            {isReport ? (
-              <>
-                {b.caption ? <div style={centered({ marginTop: 6 })}>{`Figura ${b.num ?? ""} - ${b.caption}`}</div> : null}
-                {b.sourceNote ? <div style={centered({ marginTop: 2, marginBottom: 12 })}>{b.sourceNote.startsWith("Fonte") ? b.sourceNote : `Fonte: ${b.sourceNote}`}</div> : null}
-              </>
-            ) : (
-              <>
-                {b.caption ? (
-                  <div style={centered({ marginBottom: 4 })}>{`Figura ${b.num ?? ""} – ${b.caption}`}</div>
-                ) : null}
-                <div style={centered({ fontSize: "10pt", marginTop: 4, marginBottom: 12 })}>{b.sourceNote || s.sourceNote}</div>
-              </>
-            )}
+            {b.sourceNote || s.sourceNote ? (
+              <div style={centered({ fontSize: "10pt", marginTop: 4, marginBottom: 12 })}>{b.sourceNote || s.sourceNote}</div>
+            ) : null}
           </div>
         );
       case "table":

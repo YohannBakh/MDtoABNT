@@ -57,6 +57,7 @@ scripts/test-*.png
 
 # uploads do usuario (nao versionar)
 /upload/
+/uploads/
 
 # tool artifacts
 tool-results/
@@ -64,3 +65,4 @@ tool-results/
 # arquivos do ambiente
 tool-results/
 .zscripts/dev.pid
+.gentest/

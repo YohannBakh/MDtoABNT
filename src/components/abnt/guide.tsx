@@ -66,17 +66,21 @@ Segundo @oliveira2022 → Segundo Oliveira (2022)`,
   },
   {
     title: "Tabelas e figuras (NBR 14724)",
-    body: "Coloque a legenda em um parágrafo imediatamente antes (Tabela/Figura + número opcional) e a fonte em um parágrafo 'Fonte:' logo depois. Bordas: apenas superior, inferior e cabeçalho.",
-    code: `Tabela 1 – Resultados da análise
+    body: "Figura: escreva uma linha começando com “Figura” e clique no botão de imagem que aparece na margem do editor para subir a imagem (do computador ou por URL) — ela entra acima do título; no documento o título fica acima da imagem e a fonte abaixo. Sem número digitado, a numeração é automática. Tabela: legenda em um parágrafo imediatamente antes e fonte em um parágrafo “Fonte:” logo depois. Bordas: apenas superior, inferior e cabeçalho.",
+    code: `Figura 1 – Montagem do circuito
+
+![Montagem do circuito](/api/uploads/1717-imagem.png)
+
+Fonte: elaborado pelo autor (2025).
+
+Tabela 1 – Resultados da análise
 
 | Grupo | Média |
 | :--- | ---: |
 | Experimental | 78,4 |
 | Controle | 71,2 |
 
-Fonte: dados da pesquisa (2025).
-
-![Figura 2 – Fluxo do método](/figura.png)`,
+Fonte: dados da pesquisa (2025).`,
   },
   {
     title: "Equações",

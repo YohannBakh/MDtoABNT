@@ -13,6 +13,9 @@ import { SyntaxGuide } from "@/components/abnt/guide";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -21,7 +24,7 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { AlignCenter, AlignJustify, AlignLeft, AlignRight, BookOpen, Bold, Code, Eraser, FileDown, FileText, FlaskConical, GraduationCap, Italic, Loader2, NotebookPen, ScrollText, Sigma, Underline } from "lucide-react";
+import { AlignCenter, AlignJustify, AlignLeft, AlignRight, BookOpen, Bold, Code, Eraser, FileDown, FileText, FlaskConical, GraduationCap, ImagePlus, Italic, Loader2, NotebookPen, ScrollText, Sigma, Underline } from "lucide-react";
 
 type Format = "docx" | "pdf";
 
@@ -54,8 +57,16 @@ export default function Home() {
   const [rightTab, setRightTab] = useState("preview");
   const [mobileTab, setMobileTab] = useState("editor");
   const [selMenu, setSelMenu] = useState<{ top: number; left: number } | null>(null);
+  const [figBtns, setFigBtns] = useState<{ line: number; top: number }[]>([]);
+  const [figDialog, setFigDialog] = useState<{ line: number; alt: string } | null>(null);
+  const [figFile, setFigFile] = useState<File | null>(null);
+  const [figThumb, setFigThumb] = useState<string | null>(null);
+  const [figUrl, setFigUrl] = useState("");
+  const [figUploading, setFigUploading] = useState(false);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const figInnerRef = useRef<HTMLDivElement>(null);
+  const figFileRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
@@ -163,6 +174,123 @@ export default function Home() {
     return () => document.removeEventListener("mousedown", onDocMouseDown);
   }, []);
 
+  /** mede (div espelho) as linhas que citam "Figura" sem imagem para posicionar os botões de inserir figura;
+   *  top é a posição visual da linha (considera quebra automática de linha longa) */
+  useEffect(() => {
+    const ta = taRef.current;
+    if (!ta) return;
+    const measure = () => {
+      const value = ta.value;
+      const lines = value.split("\n");
+      const targets: { line: number; start: number }[] = [];
+      let off = 0;
+      for (let i = 0; i < lines.length; i++) {
+        if (/\bfigura\b/i.test(lines[i]) && !lines[i].includes("![") && lines[i].trim() !== "") targets.push({ line: i, start: off });
+        off += lines[i].length + 1;
+      }
+      if (!targets.length) {
+        setFigBtns([]);
+        return;
+      }
+      const div = document.createElement("div");
+      const cs = getComputedStyle(ta);
+      Object.assign(div.style, {
+        position: "absolute",
+        top: "0px",
+        left: "0px",
+        visibility: "hidden",
+        width: `${ta.clientWidth}px`,
+        boxSizing: cs.boxSizing,
+        fontFamily: cs.fontFamily,
+        fontSize: cs.fontSize,
+        fontWeight: cs.fontWeight,
+        fontStyle: cs.fontStyle,
+        lineHeight: cs.lineHeight,
+        letterSpacing: cs.letterSpacing,
+        whiteSpace: "pre-wrap",
+        wordWrap: "break-word",
+        overflowWrap: "break-word",
+        paddingTop: cs.paddingTop,
+        paddingRight: cs.paddingRight,
+        paddingBottom: cs.paddingBottom,
+        paddingLeft: cs.paddingLeft,
+        border: "none",
+        margin: "0px",
+      });
+      let pos = 0;
+      const spans: HTMLSpanElement[] = [];
+      for (const t of targets) {
+        div.appendChild(document.createTextNode(value.slice(pos, t.start)));
+        const sp = document.createElement("span");
+        sp.textContent = value[t.start] ?? "";
+        div.appendChild(sp);
+        spans.push(sp);
+        pos = t.start + 1;
+      }
+      div.appendChild(document.createTextNode(value.slice(pos)));
+      const wrap = ta.parentElement;
+      if (!wrap) return;
+      wrap.appendChild(div);
+      const tops = spans.map((sp) => sp.offsetTop);
+      div.remove();
+      setFigBtns(targets.map((t, i) => ({ line: t.line, top: tops[i] })));
+    };
+    measure();
+    const ro = new ResizeObserver(() => measure());
+    ro.observe(ta);
+    return () => ro.disconnect();
+  }, [markdown]);
+
+  /** abre o diálogo de figura para a linha de título indicada (alt sugerido a partir do título) */
+  function openFigDialog(line: number) {
+    const titleLine = markdown.split("\n")[line] ?? "";
+    const alt = titleLine.replace(/^#+\s*/, "").replace(/^figura\s*\d*\s*[–\-—:]?\s*/i, "").trim() || "Figura";
+    setFigFile(null);
+    if (figThumb) URL.revokeObjectURL(figThumb);
+    setFigThumb(null);
+    setFigUrl("");
+    setFigDialog({ line, alt });
+  }
+
+  function onFigFile(f: File | null) {
+    setFigFile(f);
+    if (figThumb) URL.revokeObjectURL(figThumb);
+    setFigThumb(f ? URL.createObjectURL(f) : null);
+  }
+
+  /** insere a imagem (upload ou URL) acima da linha de título escolhida */
+  async function confirmFigInsert() {
+    if (!figDialog || figUploading) return;
+    setFigUploading(true);
+    try {
+      let src = figUrl.trim();
+      if (figFile) {
+        const fd = new FormData();
+        fd.append("file", figFile);
+        const res = await fetch("/api/upload", { method: "POST", body: fd });
+        const j = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
+        if (!res.ok || !j.url) throw new Error(j.error ?? "Falha no upload");
+        src = j.url;
+      }
+      if (!src || (!/^https?:\/\//i.test(src) && !src.startsWith("/api/uploads/"))) {
+        toast({ title: "Informe a imagem", description: "Escolha um arquivo do computador ou cole uma URL http(s).", variant: "destructive" });
+        return;
+      }
+      const lines = markdown.split("\n");
+      lines.splice(figDialog.line, 0, `![${figDialog.alt || "Figura"}](${src})`, "");
+      setMarkdown(lines.join("\n"));
+      setFigDialog(null);
+      toast({
+        title: "Figura inserida",
+        description: "Imagem adicionada acima do título — no documento gerado, o título “Figura…” fica acima da imagem e a fonte abaixo (ABNT).",
+      });
+    } catch (e) {
+      toast({ title: "Erro ao inserir figura", description: e instanceof Error ? e.message : "Tente novamente.", variant: "destructive" });
+    } finally {
+      setFigUploading(false);
+    }
+  }
+
   /** insere uma linha independente no cursor (ex.: <!-- pagebreak -->) */
   function insertLine(text: string) {
     const ta = taRef.current;
@@ -266,6 +394,22 @@ export default function Home() {
         </div>
       </div>
       <div className="relative flex min-h-0 flex-1">
+        <div className="relative w-7 shrink-0 border-r border-neutral-100 bg-neutral-50/60 dark:border-neutral-800 dark:bg-neutral-900/40">
+          <div ref={figInnerRef} className="absolute inset-x-0 top-0">
+            {figBtns.map((b) => (
+              <button
+                key={`${b.line}-${b.top}`}
+                type="button"
+                title="Inserir imagem acima desta linha de título (upload ou URL)"
+                onClick={() => openFigDialog(b.line)}
+                className="absolute left-0.5 flex h-6 w-6 items-center justify-center rounded-md text-teal-700 transition-colors hover:bg-teal-100 hover:text-teal-900 dark:text-teal-400 dark:hover:bg-teal-950/60"
+                style={{ top: b.top + 2 }}
+              >
+                <ImagePlus className="h-4 w-4" />
+              </button>
+            ))}
+          </div>
+        </div>
         <Textarea
           ref={taRef}
           value={markdown}
@@ -274,7 +418,10 @@ export default function Home() {
             setSelMenu(null);
           }}
           onSelect={() => showSelectionMenu()}
-          onScroll={() => setSelMenu(null)}
+          onScroll={() => {
+            setSelMenu(null);
+            if (figInnerRef.current) figInnerRef.current.style.transform = `translateY(${-(taRef.current?.scrollTop ?? 0)}px)`;
+          }}
           onKeyDown={(e) => {
             if (e.key === "Escape") setSelMenu(null);
           }}
@@ -359,6 +506,62 @@ export default function Home() {
           </button>
         </div>
       </div>
+      <Dialog open={figDialog !== null} onOpenChange={(o) => !o && setFigDialog(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Inserir figura</DialogTitle>
+            <DialogDescription>
+              A imagem entra acima da linha de título no editor; no documento gerado o título “Figura…” fica acima da imagem e a fonte abaixo (ABNT).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Do computador</Label>
+              <div className="flex items-center gap-2">
+                <input
+                  ref={figFileRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/gif"
+                  className="hidden"
+                  onChange={(e) => onFigFile(e.target.files?.[0] ?? null)}
+                />
+                <Button type="button" variant="outline" size="sm" onClick={() => figFileRef.current?.click()}>
+                  <ImagePlus className="mr-1.5 h-4 w-4" />
+                  Escolher arquivo…
+                </Button>
+                <span className="truncate text-xs text-neutral-500">{figFile ? figFile.name : "PNG, JPG ou GIF até 8 MB"}</span>
+              </div>
+              {figThumb ? <img src={figThumb} alt="Pré-visualização" className="max-h-28 rounded border" /> : null}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fig-url">Ou de uma URL</Label>
+              <Input
+                id="fig-url"
+                placeholder="https://exemplo.com/imagem.png"
+                value={figUrl}
+                onChange={(e) => setFigUrl(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fig-alt">Legenda alternativa (alt)</Label>
+              <Input
+                id="fig-alt"
+                value={figDialog?.alt ?? ""}
+                onChange={(e) => setFigDialog((d) => (d ? { ...d, alt: e.target.value } : d))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={() => setFigDialog(null)}>
+              Cancelar
+            </Button>
+            <Button size="sm" onClick={confirmFigInsert} disabled={figUploading} className="bg-teal-700 text-white hover:bg-teal-800">
+              {figUploading ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <ImagePlus className="mr-1.5 h-4 w-4" />}
+              Inserir figura
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 

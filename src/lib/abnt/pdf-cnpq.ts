@@ -485,8 +485,9 @@ export async function buildCnpqPdfBuffer(doc: AbntDocument): Promise<Buffer> {
           pdf.text(`[ imagem não disponível: ${b.src.slice(0, 70)} ]`, ML + 8, y + ph / 2 - 6, { width: CW - 16, align: "center", lineBreak: false, baseline: 0 });
           y += ph + 8;
         }
-        if (b.sourceNote) {
-          paragraph([{ text: b.sourceNote.startsWith("Fonte") ? b.sourceNote : `Fonte: ${b.sourceNote}` }], {
+        const fonte = b.sourceNote || s.sourceNote;
+        if (fonte) {
+          paragraph([{ text: fonte.startsWith("Fonte") ? fonte : `Fonte: ${fonte}` }], {
             align: "center",
             size: 12,
             gapAfter: 12,

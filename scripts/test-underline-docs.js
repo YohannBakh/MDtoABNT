@@ -1,12 +1,12 @@
 /* Testa sublinhado ponta a ponta: DOCX (w:u no XML) e PDF (não quebra) */
-const { parseMarkdown } = require("/tmp/gentest/parse.js");
-const { DEFAULT_SETTINGS } = require("/tmp/gentest/types.js");
-const { buildDocxBlob } = require("/tmp/gentest/docx.js");
-const { buildReportDocxBlob } = require("/tmp/gentest/docx-report.js");
-const { buildCnpqDocxBlob } = require("/tmp/gentest/docx-cnpq.js");
-const { buildPdfBuffer } = require("/tmp/gentest/pdf.js");
-const { buildReportPdfBuffer } = require("/tmp/gentest/pdf-report.js");
-const { buildCnpqPdfBuffer } = require("/tmp/gentest/pdf-cnpq.js");
+const { parseMarkdown } = require("/home/z/my-project/.gentest/abnt/parse.js");
+const { DEFAULT_SETTINGS } = require("/home/z/my-project/.gentest/abnt/types.js");
+const { buildDocxBlob } = require("/home/z/my-project/.gentest/abnt/docx.js");
+const { buildReportDocxBlob } = require("/home/z/my-project/.gentest/abnt/docx-report.js");
+const { buildCnpqDocxBlob } = require("/home/z/my-project/.gentest/abnt/docx-cnpq.js");
+const { buildPdfBuffer } = require("/home/z/my-project/.gentest/abnt/pdf.js");
+const { buildReportPdfBuffer } = require("/home/z/my-project/.gentest/abnt/pdf-report.js");
+const { buildCnpqPdfBuffer } = require("/home/z/my-project/.gentest/abnt/pdf-cnpq.js");
 const fs = require("fs");
 const { execSync } = require("child_process");
 

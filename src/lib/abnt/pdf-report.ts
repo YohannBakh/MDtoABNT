@@ -518,6 +518,11 @@ export async function buildReportPdfBuffer(doc: AbntDocument): Promise<Buffer> {
         const img = await loadImage(b.src);
         const maxW = CW;
         const maxH = BOTTOM - MT - 60;
+        // NBR 14724: identificação da figura na parte superior
+        if (b.caption) {
+          ensureSpace(40);
+          paragraph([{ text: num !== undefined ? `Figura ${num} - ${b.caption}` : b.caption }], { align: "center", size: 12 });
+        }
         if (img) {
           const { width, height } = fitImage(img, maxW, maxH);
           ensureSpace(height + 60);
@@ -536,11 +541,9 @@ export async function buildReportPdfBuffer(doc: AbntDocument): Promise<Buffer> {
           pdf.text(`[ imagem não disponível: ${b.src.slice(0, 70)} ]`, ML + 8, y + ph / 2 - 6, { width: CW - 16, align: "center", lineBreak: false, baseline: 0 });
           y += ph + 8;
         }
-        if (b.caption) {
-          paragraph([{ text: num !== undefined ? `Figura ${num} - ${b.caption}` : b.caption }], { align: "center", size: 12 });
-        }
-        if (b.sourceNote) {
-          paragraph([{ text: b.sourceNote.startsWith("Fonte") ? b.sourceNote : `Fonte: ${b.sourceNote}` }], {
+        const fonte = b.sourceNote || s.sourceNote;
+        if (fonte) {
+          paragraph([{ text: fonte.startsWith("Fonte") ? fonte : `Fonte: ${fonte}` }], {
             align: "center",
             size: 12,
             gapAfter: 12,

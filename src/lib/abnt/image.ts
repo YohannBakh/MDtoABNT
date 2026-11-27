@@ -60,6 +60,10 @@ export async function loadImage(src: string): Promise<LoadedImage | null> {
       clearTimeout(timer);
       if (!res.ok) return null;
       buf = Buffer.from(await res.arrayBuffer());
+    } else if (src.startsWith("/api/uploads/")) {
+      // imagem enviada pelo editor (servida por GET /api/uploads/[name])
+      const { readUpload } = await import("../uploads");
+      buf = await readUpload(src.slice("/api/uploads/".length));
     } else if (src.startsWith("/")) {
       // arquivo servido de public/
       const { readFile } = await import("node:fs/promises");

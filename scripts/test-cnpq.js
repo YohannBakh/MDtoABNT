@@ -1,8 +1,8 @@
 /* Gera DOCX + PDF de teste no estilo CNPq e renderiza páginas para conferência */
-const { parseMarkdown } = require("/tmp/gentest/parse.js");
-const { DEFAULT_SETTINGS } = require("/tmp/gentest/types.js");
-const { buildCnpqDocxBlob } = require("/tmp/gentest/docx-cnpq.js");
-const { buildCnpqPdfBuffer } = require("/tmp/gentest/pdf-cnpq.js");
+const { parseMarkdown } = require("/home/z/my-project/.gentest/abnt/parse.js");
+const { DEFAULT_SETTINGS } = require("/home/z/my-project/.gentest/abnt/types.js");
+const { buildCnpqDocxBlob } = require("/home/z/my-project/.gentest/abnt/docx-cnpq.js");
+const { buildCnpqPdfBuffer } = require("/home/z/my-project/.gentest/abnt/pdf-cnpq.js");
 const fs = require("fs");
 
 const MD = `---

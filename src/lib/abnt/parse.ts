@@ -611,10 +611,13 @@ export function parseMarkdown(md: string, settings: AbntSettings): AbntDocument 
         const children = (p.tokens ?? []).filter((c) => !(c.type === "text" && (c as Tokens.Text).text.trim() === ""));
         if (children.length === 1 && children[0].type === "image") {
           const img = children[0] as Tokens.Image;
+          const altNum = img.text ? img.text.match(/^(figura|tabela|quadro)\s*(\d+)/i)?.[2] : undefined;
           const fb: FigureBlock = { type: "figure", src: img.href, caption: img.text ? normalizeCaption(img.text) : undefined };
+          if (altNum) fb.num = parseInt(altNum, 10);
           blocks.push(fb);
           doc.figures.push(fb);
           if (!fb.num) fb.num = ++figCounter;
+          figCounter = Math.max(figCounter, fb.num); // híbrido: número explícito não quebra a sequência automática
           break;
         }
         const runs = inlineRuns(p.tokens);
@@ -647,7 +650,23 @@ export function parseMarkdown(md: string, settings: AbntSettings): AbntDocument 
             blocks.push(fb);
             doc.figures.push(fb);
             if (fb.num === undefined) fb.num = ++figCounter;
+            figCounter = Math.max(figCounter, fb.num); // híbrido: mantém a sequência após número explícito
             ti = nextIdx;
+            break;
+          }
+        }
+        // legenda "Figura N – ..." logo DEPOIS da imagem — fluxo do botão "Inserir figura" do editor
+        // (a imagem é inserida acima da linha de título; na renderização o título fica acima, padrão ABNT)
+        if (capMatch && /^figura$/i.test(capMatch[1] ?? "")) {
+          const lastBlock = blocks[blocks.length - 1];
+          if (lastBlock && lastBlock.type === "figure") {
+            const num = capMatch[2] ? parseInt(capMatch[2], 10) : undefined;
+            if (num !== undefined) {
+              lastBlock.num = num;
+              figCounter = Math.max(figCounter, num);
+            }
+            const rest = capMatch[3].trim();
+            if (rest) lastBlock.caption = rest;
             break;
           }
         }

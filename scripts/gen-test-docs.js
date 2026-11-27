@@ -1,10 +1,10 @@
 /* Gera documentos de teste: relatório sem capa (novo padrão) e com capa,
  * exercitando quebras de linha, containers de alinhamento e pagebreak */
-const { parseMarkdown } = require("/tmp/gentest/parse.js");
-const { DEFAULT_SETTINGS } = require("/tmp/gentest/types.js");
-const { buildReportDocxBlob } = require("/tmp/gentest/docx-report.js");
-const { buildReportPdfBuffer } = require("/tmp/gentest/pdf-report.js");
-const { buildDocxBlob } = require("/tmp/gentest/docx.js");
+const { parseMarkdown } = require("/home/z/my-project/.gentest/parse.js");
+const { DEFAULT_SETTINGS } = require("/home/z/my-project/.gentest/types.js");
+const { buildReportDocxBlob } = require("/home/z/my-project/.gentest/docx-report.js");
+const { buildReportPdfBuffer } = require("/home/z/my-project/.gentest/pdf-report.js");
+const { buildDocxBlob } = require("/home/z/my-project/.gentest/docx.js");
 const fs = require("fs");
 
 const MD = `# Descrição da atividade
@@ -80,7 +80,7 @@ Parágrafo centralizado via container.
 Texto após quebra de página manual.
 `;
   const doc3 = parseMarkdown(mdAbnt, sabnt);
-  fs.writeFileSync("/tmp/test-abnt.pdf", await require("/tmp/gentest/pdf.js").buildPdfBuffer(doc3));
+  fs.writeFileSync("/tmp/test-abnt.pdf", await require("/home/z/my-project/.gentest/pdf.js").buildPdfBuffer(doc3));
   fs.writeFileSync("/tmp/test-abnt.docx", await buildDocxBlob(doc3));
 
   console.log("ok — documentos gerados");
