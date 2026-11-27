@@ -611,17 +611,20 @@ export async function buildPdfBuffer(doc: AbntDocument): Promise<Buffer> {
       }
       case "figure": {
         const num = b.num ?? 0;
+        const img = await loadImage(b.src);
+        const maxW = CW;
+        const maxH = BOTTOM - MT - 90;
+        const k = (b.widthPct ?? 100) / 100;
+        const imgH = img ? fitImage(img, maxW * k, maxH * k).height : 100;
         if (b.caption) {
-          ensureSpace(40);
+          // reserva espaço para a legenda + começo da imagem (evita legenda órfã no fim da página)
+          ensureSpace(48 + Math.min(imgH + 30, 240));
           y += 8;
           paragraph([{ text: `Figura ${num} – ${b.caption}` }], { align: "center", size: 12, lineFactor: 1, gapAfter: 4 });
           figEntries.push({ text: `Figura ${num} – ${b.caption}`, page: currentPdfPage() });
         }
-        const img = await loadImage(b.src);
-        const maxW = CW;
-        const maxH = BOTTOM - MT - 90;
         if (img) {
-          const { width, height } = fitImage(img, maxW, maxH);
+          const { width, height } = fitImage(img, maxW * k, maxH * k);
           ensureSpace(height + 30);
           const ix = b.align === "left" ? ML : b.align === "right" ? ML + CW - width : ML + (CW - width) / 2;
           try {

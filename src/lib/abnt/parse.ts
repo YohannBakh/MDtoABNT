@@ -395,6 +395,15 @@ function normalizeCaption(caption: string): string {
   return caption.replace(/^(figura|tabela|quadro)\s*\d+\s*[–\-—:]\s*/i, "").trim();
 }
 
+/** largura da figura informada no title da imagem ("60%") — aceita 5..100 */
+function widthPctFrom(title?: string | null): number | undefined {
+  if (!title) return undefined;
+  const m = title.trim().match(/^(\d{1,3})\s*%$/);
+  if (!m) return undefined;
+  const v = parseInt(m[1], 10);
+  return v >= 5 && v <= 100 ? v : undefined;
+}
+
 /** próximo token significativo (ignora espaços em branco) */
 function nextMeaningful(tokens: Token[], from: number): Token | null {
   for (let i = from; i < tokens.length; i++) {
@@ -613,6 +622,8 @@ export function parseMarkdown(md: string, settings: AbntSettings): AbntDocument 
           const img = children[0] as Tokens.Image;
           const altNum = img.text ? img.text.match(/^(figura|tabela|quadro)\s*(\d+)/i)?.[2] : undefined;
           const fb: FigureBlock = { type: "figure", src: img.href, caption: img.text ? normalizeCaption(img.text) : undefined };
+          const wp = widthPctFrom(img.title);
+          if (wp) fb.widthPct = wp;
           if (altNum) fb.num = parseInt(altNum, 10);
           blocks.push(fb);
           doc.figures.push(fb);
@@ -647,6 +658,8 @@ export function parseMarkdown(md: string, settings: AbntSettings): AbntDocument 
           } else {
             const img = singleImage(next as Tokens.Paragraph)!;
             const fb: FigureBlock = { type: "figure", src: img.href, caption: capMatch[3], num: num ?? undefined };
+            const wp = widthPctFrom(img.title);
+            if (wp) fb.widthPct = wp;
             blocks.push(fb);
             doc.figures.push(fb);
             if (fb.num === undefined) fb.num = ++figCounter;

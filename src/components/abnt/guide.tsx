@@ -66,10 +66,10 @@ Segundo @oliveira2022 → Segundo Oliveira (2022)`,
   },
   {
     title: "Tabelas e figuras (NBR 14724)",
-    body: "Figura: escreva uma linha começando com “Figura” e clique no botão de imagem que aparece na margem do editor para subir a imagem (do computador ou por URL) — ela entra acima do título; no documento o título fica acima da imagem e a fonte abaixo. Sem número digitado, a numeração é automática. Tabela: legenda em um parágrafo imediatamente antes e fonte em um parágrafo “Fonte:” logo depois. Bordas: apenas superior, inferior e cabeçalho.",
+    body: "Figura: escreva uma linha começando com “Figura” e clique no botão de imagem que aparece na margem do editor para subir a imagem (do computador ou por URL) — ela entra acima do título; no documento o título fica acima da imagem e a fonte abaixo. Sem número digitado, a numeração é automática. Largura: no diálogo, informe a % da largura útil (grava \"60%\" no final da imagem) — ou digite direto no código. Tabela: legenda em um parágrafo imediatamente antes e fonte em um parágrafo “Fonte:” logo depois. Bordas: apenas superior, inferior e cabeçalho.",
     code: `Figura 1 – Montagem do circuito
 
-![Montagem do circuito](/api/uploads/1717-imagem.png)
+![Montagem do circuito](/api/uploads/1717-imagem.png "60%")
 
 Fonte: elaborado pelo autor (2025).
 

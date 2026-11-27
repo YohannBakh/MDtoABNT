@@ -70,6 +70,8 @@ export interface FigureBlock {
   caption?: string;
   sourceNote?: string;
   num?: number;
+  /** largura da imagem em % da largura útil (title "N%" na imagem) */
+  widthPct?: number;
   /** alinhamento definido por container ::: (opcional) */
   align?: Align;
   /** preenchido no estágio de geração */

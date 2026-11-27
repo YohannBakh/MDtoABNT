@@ -518,13 +518,16 @@ export async function buildReportPdfBuffer(doc: AbntDocument): Promise<Buffer> {
         const img = await loadImage(b.src);
         const maxW = CW;
         const maxH = BOTTOM - MT - 60;
+        const k = (b.widthPct ?? 100) / 100;
+        const imgH = img ? fitImage(img, maxW * k, maxH * k).height : 100;
         // NBR 14724: identificação da figura na parte superior
         if (b.caption) {
-          ensureSpace(40);
+          // reserva espaço para a legenda + começo da imagem (evita legenda órfã no fim da página)
+          ensureSpace(48 + Math.min(imgH + 40, 240));
           paragraph([{ text: num !== undefined ? `Figura ${num} - ${b.caption}` : b.caption }], { align: "center", size: 12 });
         }
         if (img) {
-          const { width, height } = fitImage(img, maxW, maxH);
+          const { width, height } = fitImage(img, maxW * k, maxH * k);
           ensureSpace(height + 60);
           const ix = b.align === "left" ? ML : b.align === "right" ? ML + CW - width : ML + (CW - width) / 2;
           try {

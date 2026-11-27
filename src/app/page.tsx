@@ -62,6 +62,7 @@ export default function Home() {
   const [figFile, setFigFile] = useState<File | null>(null);
   const [figThumb, setFigThumb] = useState<string | null>(null);
   const [figUrl, setFigUrl] = useState("");
+  const [figWidth, setFigWidth] = useState("100");
   const [figUploading, setFigUploading] = useState(false);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -249,6 +250,7 @@ export default function Home() {
     if (figThumb) URL.revokeObjectURL(figThumb);
     setFigThumb(null);
     setFigUrl("");
+    setFigWidth("100");
     setFigDialog({ line, alt });
   }
 
@@ -277,7 +279,11 @@ export default function Home() {
         return;
       }
       const lines = markdown.split("\n");
-      lines.splice(figDialog.line, 0, `![${figDialog.alt || "Figura"}](${src})`, "");
+      // largura em % da largura útil (title do link de imagem); 100 = não grava nada
+      const wRaw = parseInt(figWidth, 10);
+      const w = Number.isFinite(wRaw) ? Math.min(100, Math.max(5, wRaw)) : 100;
+      const wTitle = w < 100 ? ` "${w}%"` : "";
+      lines.splice(figDialog.line, 0, `![${figDialog.alt || "Figura"}](${src}${wTitle})`, "");
       setMarkdown(lines.join("\n"));
       setFigDialog(null);
       toast({
@@ -549,6 +555,21 @@ export default function Home() {
                 value={figDialog?.alt ?? ""}
                 onChange={(e) => setFigDialog((d) => (d ? { ...d, alt: e.target.value } : d))}
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fig-width">Largura da imagem (% da largura útil)</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="fig-width"
+                  type="number"
+                  min={5}
+                  max={100}
+                  value={figWidth}
+                  onChange={(e) => setFigWidth(e.target.value)}
+                  className="w-24"
+                />
+                <span className="text-xs text-neutral-500">100 = largura total do texto; ex.: 60 deixa a figura com 60% da largura</span>
+              </div>
             </div>
           </div>
           <DialogFooter>

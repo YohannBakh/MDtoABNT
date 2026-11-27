@@ -400,8 +400,9 @@ export async function buildReportDocxBlob(doc: AbntDocument): Promise<Buffer> {
         const img = await loadImage(b.src);
         const maxW = px(CONTENT_W);
         const maxH = px(PAGE_H - M_TOP - M_BOTTOM) - 300;
+        const k = (b.widthPct ?? 100) / 100;
         if (img) {
-          const { width, height } = fitImage(img, maxW, maxH);
+          const { width, height } = fitImage(img, maxW * k, maxH * k);
           bodyChildren.push(...figureBlocks(img.buf, img.kind, width, height, b.caption, b.num, b.sourceNote, doc, b.align));
         } else {
           bodyChildren.push(

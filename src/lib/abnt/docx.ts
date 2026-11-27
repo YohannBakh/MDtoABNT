@@ -501,8 +501,9 @@ export async function buildDocxBlob(doc: AbntDocument): Promise<Buffer> {
         const img = await loadImage(b.src);
         const maxW = px(CONTENT_W);
         const maxH = px(PAGE_H - M_TOP - M_BOTTOM) - 200;
+        const k = (b.widthPct ?? 100) / 100;
         if (img) {
-          const { width, height } = fitImage(img, maxW, maxH);
+          const { width, height } = fitImage(img, maxW * k, maxH * k);
           pushAll(figureBlocksToDocx(img.buf, img.kind, width, height, b.caption, b.sourceNote, doc, b.align));
         } else {
           // espaço reservado

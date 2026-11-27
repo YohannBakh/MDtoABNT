@@ -5,7 +5,7 @@ const { DEFAULT_SETTINGS } = require("/home/z/my-project/.gentest/abnt/types.js"
 function figs(md, style = "abnt") {
   const doc = parseMarkdown(md, { ...DEFAULT_SETTINGS, style });
   return {
-    figures: doc.figures.map((f) => ({ num: f.num, caption: f.caption, src: f.src, fonte: f.sourceNote })),
+    figures: doc.figures.map((f) => ({ num: f.num, caption: f.caption, src: f.src, fonte: f.sourceNote, pct: f.widthPct })),
     strayParas: doc.body
       .filter((b) => b.type === "paragraph")
       .map((b) => b.runs.map((r) => r.text).join(""))
@@ -38,3 +38,13 @@ console.log("T5 figs:", JSON.stringify(r.figures), "| soltos:", JSON.stringify(r
 // T6 — numeração sequencial com híbridos misturados
 r = figs(`Figura 7 – Sete\n\n![](${S})\n\nFigura – Oito automática\n\n![](${S})\n`);
 console.log("T6 figs:", JSON.stringify(r.figures));
+
+// T7 — largura "60%" no title (fluxo do botão e fluxo antigo)
+r = figs(`![Circuito](${S} "60%")\n\nFigura 1 – Circuito reduzido\n`);
+console.log("T7 figs:", JSON.stringify(r.figures));
+r = figs(`Figura 2 – Metade\n\n![](${S} "50%")\n`);
+console.log("T7b figs:", JSON.stringify(r.figures));
+
+// T8 — larguras inválidas/fora do intervalo são ignoradas
+r = figs(`![](${S} "150%")\n\n![](${S} "abc%")\n\n![](${S} "8%")\n`);
+console.log("T8 figs:", JSON.stringify(r.figures));

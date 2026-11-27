@@ -10,11 +10,11 @@ const { buildCnpqPdfBuffer } = require("/home/z/my-project/.gentest/abnt/pdf-cnp
 const fs = require("fs");
 const { execSync } = require("child_process");
 
-// fluxo do usuário: imagem acima da linha de título, fonte personalizada na 2ª figura
+// fluxo do usuário: imagem acima da linha de título, 1ª figura com largura 60%, fonte personalizada na 2ª
 const md = [
   "## Resultados",
   "",
-  "![Montagem do circuito](/api/uploads/test-fig.png)",
+  '![Montagem do circuito](/api/uploads/test-fig.png "60%")',
   "",
   "Figura 1 – Montagem do circuito",
   "",
@@ -47,6 +47,8 @@ const md = [
     const capIdx = xml.indexOf("Figura 1 – Montagem do circuito");
     const drawIdx = xml.indexOf("<w:drawing>");
     const fonteIdx = xml.indexOf("Fonte: dados do experimento");
-    console.log(style, "| drawings:", drawings, "| título antes da 1ª imagem:", capIdx > -1 && capIdx < drawIdx, "| fonte presente:", fonteIdx > -1, "| pdf bytes:", pdf.length);
+    // larguras declaradas nas 3 imagens (EMU: 914400 por polegada) — a 1ª deve ser ~60% da 2ª/3ª
+    const widths = [...xml.matchAll(/<wp:extent cx="(\d+)"/g)].map((m) => parseInt(m[1], 10));
+    console.log(style, "| drawings:", drawings, "| título antes da 1ª imagem:", capIdx > -1 && capIdx < drawIdx, "| fonte presente:", fonteIdx > -1, "| larguras:", widths.join(", "), "| pdf bytes:", pdf.length);
   }
 })().catch((e) => { console.error("ERRO:", e); process.exit(1); });

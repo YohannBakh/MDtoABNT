@@ -526,7 +526,7 @@ export function AbntPreview({ doc }: { doc: AbntDocument }) {
                 src={b.src}
                 alt={b.caption ?? "Figura"}
                 style={{
-                  maxWidth: "100%",
+                  maxWidth: b.widthPct ? `${b.widthPct}%` : "100%",
                   maxHeight: "14cm",
                   display: "block",
                   ...(b.align === "left" ? { marginRight: "auto" } : b.align === "right" ? { marginLeft: "auto" } : { margin: "0 auto" }),
@@ -567,7 +567,7 @@ export function AbntPreview({ doc }: { doc: AbntDocument }) {
               src={b.src}
               alt={b.caption ?? "Figura"}
               style={{
-                maxWidth: "100%",
+                maxWidth: b.widthPct ? `${b.widthPct}%` : "100%",
                 maxHeight: isReport ? "14cm" : "16cm",
                 display: "block",
                 ...(b.align === "left" ? { marginRight: "auto" } : b.align === "right" ? { marginLeft: "auto" } : { margin: "0 auto" }),
