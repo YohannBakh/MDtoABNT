@@ -258,6 +258,9 @@ function inlineRuns(tokens: Token[] | undefined, base: Partial<InlineRun> = {}, 
       case "lineBreakCmd":
         runs.push({ text: "\n" });
         break;
+      case "underlineTag":
+        runs.push(...inlineRuns((t as { tokens?: Token[] }).tokens, { ...base, underline: true }, ctx));
+        break;
       case "escape":
         runs.push({ ...base, text: normalizeSoftBreaks(convertCitations((t as Tokens.Escape).text)) });
         break;
@@ -486,6 +489,23 @@ const lineBreakCmdExtension = {
   },
 };
 
+/** extensão marked: <u>texto</u> → sublinhado */
+const underlineTagExtension = {
+  name: "underlineTag",
+  level: "inline" as const,
+  start(src: string) {
+    return src.match(/<u>/i)?.index;
+  },
+  tokenizer(
+    this: { lexer: { inlineTokens: (src: string, tokens?: Token[]) => Token[] } },
+    src: string
+  ): Token | undefined {
+    const m = /^<u>([\s\S]*?)<\/u>/i.exec(src);
+    if (!m) return undefined;
+    return { type: "underlineTag", raw: m[0], tokens: this.lexer.inlineTokens(m[1]) } as unknown as Token;
+  },
+};
+
 export function parseMarkdown(md: string, settings: AbntSettings): AbntDocument {
   const { front, body } = extractFrontMatter(md);
   const doc: AbntDocument = {
@@ -502,7 +522,7 @@ export function parseMarkdown(md: string, settings: AbntSettings): AbntDocument 
   const lexer = new Marked({
     breaks: settings.toggles.lineBreaks !== false,
     gfm: true,
-    extensions: [containerExtension as never, lineBreakCmdExtension as never],
+    extensions: [containerExtension as never, lineBreakCmdExtension as never, underlineTagExtension as never],
   });
   const tokens = [...lexer.lexer(body)] as Token[];
   const blocks: Block[] = [];

@@ -3,7 +3,7 @@
 /* MD2ABNT — Conversor de anotações Markdown para os padrões ABNT */
 
 import Image from "next/image";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { parseMarkdown } from "@/lib/abnt/parse";
 import { DEFAULT_SETTINGS, type AbntSettings } from "@/lib/abnt/types";
 import { SAMPLE_MARKDOWN, SAMPLE_REPORT_MARKDOWN, SAMPLE_CNPQ_MARKDOWN } from "@/lib/abnt/sample";
@@ -21,7 +21,7 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { BookOpen, Eraser, FileDown, FileText, FlaskConical, GraduationCap, Loader2, NotebookPen, ScrollText } from "lucide-react";
+import { AlignCenter, AlignJustify, AlignLeft, AlignRight, BookOpen, Bold, Code, Eraser, FileDown, FileText, FlaskConical, GraduationCap, Italic, Loader2, NotebookPen, ScrollText, Sigma, Underline } from "lucide-react";
 
 type Format = "docx" | "pdf";
 
@@ -33,13 +33,29 @@ const ALIGN_CHIPS: { label: string; tag: string; title: string }[] = [
   { label: "Justificar", tag: "justify", title: "Envolve a seleção com ::: justify … :::" },
 ];
 
+/** botão do menu flutuante de formatação */
+function SelBtn({ children, title, onClick }: { children: ReactNode; title: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      title={title}
+      onClick={onClick}
+      className="flex h-7 min-w-7 items-center justify-center rounded px-1.5 text-xs font-semibold text-neutral-200 transition-colors hover:bg-neutral-700/80 hover:text-white"
+    >
+      {children}
+    </button>
+  );
+}
+
 export default function Home() {
   const [markdown, setMarkdown] = useState<string>(SAMPLE_MARKDOWN);
   const [settings, setSettings] = useState<AbntSettings>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState<Format | null>(null);
   const [rightTab, setRightTab] = useState("preview");
   const [mobileTab, setMobileTab] = useState("editor");
+  const [selMenu, setSelMenu] = useState<{ top: number; left: number } | null>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
@@ -49,23 +65,103 @@ export default function Home() {
 
   const patchSettings = (patch: Partial<AbntSettings>) => setSettings((s) => ({ ...s, ...patch }));
 
-  /** envolve a seleção atual do editor com um marcador (ex.: ::: center … :::) */
-  function insertAround(before: string, after: string) {
+  /** envolve a seleção atual com marcadores. block=true envolve em bloco próprio (containers :::);
+   *  inline envolve no meio da linha (negrito, itálico…). Se a seleção já estiver exatamente
+   *  envolvida pelos mesmos marcadores, eles são removidos (toggle). */
+  function wrapSel(before: string, after: string, block = false) {
     const ta = taRef.current;
     if (!ta) return;
     const start = ta.selectionStart ?? 0;
     const end = ta.selectionEnd ?? start;
     const sel = markdown.slice(start, end) || "texto";
-    const pre = start === 0 || markdown[start - 1] === "\n" ? "" : "\n";
+    const beforeHit = markdown.slice(Math.max(0, start - before.length), start);
+    const afterHit = markdown.slice(end, end + after.length);
+    if (beforeHit === before && afterHit === after) {
+      const ns = Math.max(0, start - before.length);
+      setMarkdown(markdown.slice(0, ns) + sel + markdown.slice(end + after.length));
+      requestAnimationFrame(() => {
+        ta.focus();
+        ta.setSelectionRange(ns, ns + sel.length);
+        showSelectionMenu();
+      });
+      return;
+    }
+    const pre = block && start !== 0 && markdown[start - 1] !== "\n" ? "\n" : "";
     const rest = markdown.slice(end);
-    const post = rest.startsWith("\n") || rest === "" ? "\n\n" : "\n";
-    const snippet = `${pre}${before}${sel}${after}${post}`;
-    setMarkdown(markdown.slice(0, start) + snippet + rest);
+    const post = block ? (rest.startsWith("\n") || rest === "" ? "\n\n" : "\n") : "";
+    setMarkdown(markdown.slice(0, start) + pre + before + sel + after + post + rest);
     requestAnimationFrame(() => {
       ta.focus();
       ta.setSelectionRange(start + pre.length + before.length, start + pre.length + before.length + sel.length);
+      showSelectionMenu();
     });
   }
+
+  /** mede a posição da seleção no textarea (div espelho) e posiciona o menu flutuante; esconde se não há seleção */
+  function showSelectionMenu() {
+    const ta = taRef.current;
+    if (!ta || ta.selectionStart === ta.selectionEnd || !ta.value.slice(ta.selectionStart, ta.selectionEnd).trim()) {
+      setSelMenu(null);
+      return;
+    }
+    const wrap = ta.parentElement;
+    if (!wrap) return;
+    const div = document.createElement("div");
+    const cs = getComputedStyle(ta);
+    Object.assign(div.style, {
+      position: "absolute",
+      top: "0px",
+      left: "0px",
+      visibility: "hidden",
+      width: `${ta.clientWidth}px`,
+      boxSizing: cs.boxSizing,
+      fontFamily: cs.fontFamily,
+      fontSize: cs.fontSize,
+      fontWeight: cs.fontWeight,
+      fontStyle: cs.fontStyle,
+      lineHeight: cs.lineHeight,
+      letterSpacing: cs.letterSpacing,
+      textTransform: cs.textTransform,
+      tabSize: cs.tabSize,
+      whiteSpace: "pre-wrap",
+      wordWrap: "break-word",
+      overflowWrap: "break-word",
+      paddingTop: cs.paddingTop,
+      paddingRight: cs.paddingRight,
+      paddingBottom: cs.paddingBottom,
+      paddingLeft: cs.paddingLeft,
+      border: "none",
+      margin: "0px",
+    });
+    div.textContent = ta.value.slice(0, ta.selectionStart);
+    const span = document.createElement("span");
+    span.textContent = ta.value.slice(ta.selectionStart, ta.selectionEnd) || ".";
+    div.appendChild(span);
+    wrap.appendChild(div);
+    const top0 = span.offsetTop - ta.scrollTop;
+    const left0 = span.offsetLeft;
+    const lineH = parseFloat(cs.lineHeight) || 24;
+    div.remove();
+    const menuW = Math.min(452, ta.clientWidth - 8);
+    const menuH = 44;
+    const fitsAbove = top0 >= menuH + 4;
+    const top = fitsAbove
+      ? top0 - menuH - 4
+      : Math.min(top0 + lineH + 6, Math.max(4, ta.clientHeight - menuH - 4));
+    const left = Math.min(Math.max(4, left0 - 24), Math.max(4, ta.clientWidth - menuW - 4));
+    setSelMenu({ top, left });
+  }
+
+  /** fecha o menu flutuante quando o clique cai fora do editor e do menu */
+  useEffect(() => {
+    function onDocMouseDown(e: MouseEvent) {
+      const t = e.target as Node;
+      if (menuRef.current?.contains(t) || taRef.current?.contains(t)) return;
+      setSelMenu(null);
+    }
+    document.addEventListener("mousedown", onDocMouseDown);
+    return () => document.removeEventListener("mousedown", onDocMouseDown);
+  }, []);
 
   /** insere uma linha independente no cursor (ex.: <!-- pagebreak -->) */
   function insertLine(text: string) {
@@ -169,15 +265,62 @@ export default function Home() {
           </button>
         </div>
       </div>
-      <Textarea
-        ref={taRef}
-        value={markdown}
-        onChange={(e) => setMarkdown(e.target.value)}
-        placeholder="# Cole aqui suas anotações em Markdown..."
-        className="flex-1 resize-none rounded-none border-0 bg-[repeating-linear-gradient(transparent,transparent_35px,rgba(0,0,0,0.03)_35px,rgba(0,0,0,0.03)_36px)] p-4 font-mono text-[13px] leading-6 shadow-none focus-visible:ring-0 dark:bg-[repeating-linear-gradient(transparent,transparent_35px,rgba(255,255,255,0.04)_35px,rgba(255,255,255,0.04)_36px)]"
-        aria-label="Editor de Markdown"
-        spellCheck={false}
-      />
+      <div className="relative flex min-h-0 flex-1">
+        <Textarea
+          ref={taRef}
+          value={markdown}
+          onChange={(e) => {
+            setMarkdown(e.target.value);
+            setSelMenu(null);
+          }}
+          onSelect={() => showSelectionMenu()}
+          onScroll={() => setSelMenu(null)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setSelMenu(null);
+          }}
+          placeholder="# Cole aqui suas anotações em Markdown..."
+          className="h-full w-full resize-none rounded-none border-0 bg-[repeating-linear-gradient(transparent,transparent_35px,rgba(0,0,0,0.03)_35px,rgba(0,0,0,0.03)_36px)] p-4 font-mono text-[13px] leading-6 shadow-none focus-visible:ring-0 dark:bg-[repeating-linear-gradient(transparent,transparent_35px,rgba(255,255,255,0.04)_35px,rgba(255,255,255,0.04)_36px)]"
+          aria-label="Editor de Markdown"
+          spellCheck={false}
+        />
+        {selMenu && (
+          <div
+            ref={menuRef}
+            className="absolute z-30 flex max-w-[calc(100%-8px)] flex-wrap items-center gap-0.5 rounded-lg border border-neutral-700 bg-neutral-900 p-1 shadow-xl"
+            style={{ top: selMenu.top, left: selMenu.left }}
+            onMouseDown={(e) => e.preventDefault()}
+          >
+            <SelBtn title="Negrito — envolve com ** … **" onClick={() => wrapSel("**", "**")}>
+              <Bold className="h-4 w-4" />
+            </SelBtn>
+            <SelBtn title="Itálico — envolve com * … *" onClick={() => wrapSel("*", "*")}>
+              <Italic className="h-4 w-4" />
+            </SelBtn>
+            <SelBtn title="Sublinhado — envolve com <u> … </u>" onClick={() => wrapSel("<u>", "</u>")}>
+              <Underline className="h-4 w-4" />
+            </SelBtn>
+            <SelBtn title="Código — envolve com ` … `" onClick={() => wrapSel("`", "`")}>
+              <Code className="h-4 w-4" />
+            </SelBtn>
+            <SelBtn title="Equação — envolve com $ … $" onClick={() => wrapSel("$", "$")}>
+              <Sigma className="h-4 w-4" />
+            </SelBtn>
+            <span className="mx-0.5 h-5 w-px bg-neutral-700" aria-hidden />
+            <SelBtn title="Alinhar à esquerda — envolve com ::: left … :::" onClick={() => wrapSel("::: left\n", "\n:::", true)}>
+              <AlignLeft className="h-4 w-4" />
+            </SelBtn>
+            <SelBtn title="Centralizar — envolve com ::: center … :::" onClick={() => wrapSel("::: center\n", "\n:::", true)}>
+              <AlignCenter className="h-4 w-4" />
+            </SelBtn>
+            <SelBtn title="Alinhar à direita — envolve com ::: right … :::" onClick={() => wrapSel("::: right\n", "\n:::", true)}>
+              <AlignRight className="h-4 w-4" />
+            </SelBtn>
+            <SelBtn title="Justificar — envolve com ::: justify … :::" onClick={() => wrapSel("::: justify\n", "\n:::", true)}>
+              <AlignJustify className="h-4 w-4" />
+            </SelBtn>
+          </div>
+        )}
+      </div>
       <div className="border-t px-3 py-2">
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="mr-1 text-[11px] font-semibold text-neutral-500 dark:text-neutral-400">Dicas rápidas:</span>
@@ -191,7 +334,7 @@ export default function Home() {
             <button
               key={chip.tag}
               type="button"
-              onClick={() => insertAround(`::: ${chip.tag}\n`, "\n:::")}
+              onClick={() => wrapSel(`::: ${chip.tag}\n`, "\n:::", true)}
               title={`${chip.title} — aplica ao texto selecionado`}
               className="rounded border border-teal-700/40 bg-teal-50 px-2 py-1 text-[11px] font-medium text-teal-800 transition-colors hover:bg-teal-100 dark:border-teal-500/40 dark:bg-teal-950/40 dark:text-teal-300 dark:hover:bg-teal-900/40"
             >

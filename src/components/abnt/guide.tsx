@@ -103,6 +103,13 @@ VR1 = 1000 × 3,75 mA = 3,75 V \\\\
 VR2 = 12 − 3,75 = 8,25 V`,
   },
   {
+    title: "Formatação de texto",
+    body: "Selecione o texto no editor com o mouse para abrir o menu flutuante com negrito, itálico, sublinhado, código, equação e alinhamentos — ou escreva os marcadores direto: **negrito**, *itálico*, <u>sublinhado</u>, `código` e $equação$.",
+    code: `**tensão elétrica** em *regime permanente*
+<u>atenção:</u> a unidade é \`ohm\`
+Fórmula: $v = i \\cdot r$`,
+  },
+  {
     title: "Alinhamento e posicionamento",
     body: "Envolva o conteúdo em um bloco ::: para mudar o posicionamento: center/centro, left/esquerda, right/direita ou justify/justificado. Funciona com parágrafos, títulos e imagens (aparece assim também na prévia).",
     code: `::: center

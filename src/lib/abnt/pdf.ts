@@ -23,6 +23,7 @@ interface Token {
   size: number;
   sup?: boolean;
   sub?: boolean;
+  underline?: boolean;
   isSpace?: boolean;
   isBreak?: boolean;
 }
@@ -54,10 +55,10 @@ function tokenize(runs: InlineRun[], f: PdfFontMap, mono: PdfFontMap, size: numb
     for (const p of parts) {
       if (!p) continue;
       if (/^\s+$/.test(p)) {
-        if (p.includes("\n")) tokens.push({ text: p, font, size: sz, sup: r.sup, sub: r.sub, isBreak: true });
-        else tokens.push({ text: p, font, size: sz, sup: r.sup, sub: r.sub, isSpace: true });
+        if (p.includes("\n")) tokens.push({ text: p, font, size: sz, sup: r.sup, sub: r.sub, underline: r.underline, isBreak: true });
+        else tokens.push({ text: p, font, size: sz, sup: r.sup, sub: r.sub, underline: r.underline, isSpace: true });
       } else {
-        tokens.push({ text: p, font, size: sz, sup: r.sup, sub: r.sub });
+        tokens.push({ text: p, font, size: sz, sup: r.sup, sub: r.sub, underline: r.underline });
       }
     }
   }
@@ -218,6 +219,9 @@ export async function buildPdfBuffer(doc: AbntDocument): Promise<Buffer> {
         const dy = it.t.sup ? -0.32 * o.size : it.t.sub ? 0.18 * o.size : 0;
         pdf.font(it.t.font).fontSize(it.t.size).fillColor("#000000");
         pdf.text(it.t.text, cx, baseline + dy, { lineBreak: false, baseline: 0 });
+        if (it.t.underline && it.t.text.trim()) {
+          pdf.moveTo(cx, baseline + dy + 1.2).lineTo(cx + it.w, baseline + dy + 1.2).lineWidth(0.7).strokeColor("#000000").stroke();
+        }
         cx += it.w;
       }
       y += lineH;
@@ -493,6 +497,9 @@ export async function buildPdfBuffer(doc: AbntDocument): Promise<Buffer> {
             if (it.spaceBefore) px2 += it.spaceBefore;
             pdf.font(it.t.font).fontSize(it.t.size).fillColor("#000000");
             pdf.text(it.t.text, px2, baseline, { lineBreak: false, baseline: 0 });
+            if (it.t.underline && it.t.text.trim()) {
+              pdf.moveTo(px2, baseline + 1.2).lineTo(px2 + it.w, baseline + 1.2).lineWidth(0.7).strokeColor("#000000").stroke();
+            }
             px2 += it.w;
           }
           cy += lineH;
